@@ -1,6 +1,6 @@
 streamlit
 numpy
-matplotlib
+matplotlib.pyplot
 statsbombpy
 highlight_text
 mplsoccer
