@@ -4,3 +4,4 @@ matplotlib.pyplot
 statsbombpy
 highlight_text
 mplsoccer
+--upgrade pip
