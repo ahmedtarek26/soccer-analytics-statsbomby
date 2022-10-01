@@ -1,7 +1,6 @@
 streamlit
 numpy
-matplotlib.pyplot
+matplotlib
 statsbombpy
 highlight_text
 mplsoccer
---upgrade pip
