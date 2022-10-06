@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 from statsbombpy import sb
 from mplsoccer.pitch import Pitch, VerticalPitch
 from highlight_text import fig_text
+import plotly.express as px
+from dash import dcc
 
-## competitions 
+## competitions
 com = sb.competitions()
 
 com_name = com['competition_name']
@@ -81,9 +83,10 @@ def shots(events, h, w, match_id):
             x_w.append(shot['location'][0])
             y_w.append(shot['location'][1])
 
-    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7)
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
 
-    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7)
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
 
     total_shots = len(events['shots'])
     fig_text(s=f'Total Shots: {total_shots}',
@@ -123,9 +126,10 @@ def dribbles(events, h, w, match_id):
         elif events['dribbles']['possession_team'][i] == w:
             x_w.append(shot['location'][0])
             y_w.append(shot['location'][1])
-    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7)
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
 
-    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7)
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
 
     total_shots = len(events['dribbles'])
 
@@ -137,6 +141,13 @@ def dribbles(events, h, w, match_id):
 
     plt.savefig(f'graphs/dribbles-{match_id}.png', dpi=300, bbox_inches='tight', facecolor='#486F38')
     st.image(f'graphs/dribbles-{match_id}.png')
+
+
+## clearances
+def clearance(events, match_id):
+    data = events['clearances']
+    fig = px.bar(data, x='player', color='possession_team')
+    st.plotly_chart(fig)
 
 
 ## passes
@@ -222,13 +233,20 @@ if sub_2:
     st.subheader(f'{stadium} Stadium')
     st.subheader(f'{comp_stats} Stage')
 
-    # st.subheader('Lineups')
-    # st.write(home_lineup, away_lineup)
     events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
+    # st.subheader(f"Injury Stoppages")
+    # inj_time = []
+    # for i in range(0, len(events['injury_stoppage']) - 1):
+    #     inj_time.append(
+    #         f"- {events['injury_stoppages']['player'][i]} Time period  {events['injury_stoppages']['minute'][i]}:{events['injury_stoppages']['second'][i]}")
+    # for j in range(0, len(inj_time) - 1):
+    #     st.write(inj_time[i])
     st.subheader(f'{home_team} shots vs {away_team} shots')
     shots(events, home_team, away_team, matches_id[match])
     st.subheader('Dribbles')
     dribbles(events, home_team, away_team, matches_id[match])
+    st.subheader('Clearances in the match')
+    clearance(events, matches_id[match])
     st.subheader(f'{home_team} pass map')
     home_team_passes(events, home_team, matches_id[match])
     st.subheader(f'{away_team} pass map')
