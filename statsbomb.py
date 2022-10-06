@@ -3,7 +3,6 @@
 # # run the app using this line in commnands :streamlit run --theme.base "light" statsbomb.py
 
 import streamlit as st
-import numpy as np
 import matplotlib.pyplot as plt
 from statsbombpy import sb
 from mplsoccer.pitch import Pitch, VerticalPitch
@@ -88,9 +87,9 @@ def shots(events, h, w, match_id):
 
     total_shots = len(events['shots'])
     fig_text(s=f'Total Shots: {total_shots}',
-             x=.49, y=.67, fontsize=14, fontfamily='Andale Mono', color='white')
+             x=.49, y=.67, fontsize=14, color='white')
 
-    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, fontfamily='Andale Mono',
+    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12,
              color='white')
 
     plt.savefig(f'graphs/shots-{match_id}.png', dpi=300, bbox_inches='tight', facecolor='#486F38')
@@ -131,9 +130,9 @@ def dribbles(events, h, w, match_id):
     total_shots = len(events['dribbles'])
 
     fig_text(s=f'Total Dribbles: {total_shots}',
-             x=.49, y=.67, fontsize=14, fontfamily='Andale Mono', color='white')
+             x=.49, y=.67, fontsize=14, color='white')
 
-    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, fontfamily='Andale Mono',
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12,
              color='white')
 
     plt.savefig(f'graphs/dribbles-{match_id}.png', dpi=300, bbox_inches='tight', facecolor='#486F38')
@@ -189,7 +188,7 @@ def away_team_passes(events, away_team, match_id):
 
 
 ## streamlit app
-
+st.title('Discover the competition like couches 😉')
 competition = st.selectbox('Choose the competition', (com_dict.keys()))
 
 season = st.selectbox('Choose the season', (season_dict.keys()))
@@ -200,10 +199,31 @@ sub_2 = st.button('Analyze')
 if sub_2:
     home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
         data, matches_idx[match])
-    st.write(home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats)
     home_lineup, away_lineup = lineups(home_team, away_team, data=sb.lineups(match_id=matches_id[match]))
-    st.subheader('Lineups')
-    st.write(home_lineup, away_lineup)
+    col1, col2, col3 = st.columns([2, 1, 2])
+    # st.subheader(f'{home_team} {home_score} : {away_score} {away_team}')
+    col1.subheader(f'{home_team}')
+    col1.markdown(f'### \t{home_score}')
+    col2.subheader('\n')
+    col2.subheader('Goals')
+    col2.subheader('Manager\n')
+    col1.write(f'\n {home_manager}')
+    col2.subheader(f'Lineup ')
+    for i in range(len(home_lineup)):
+        col1.write('\n \n \n')
+        col1.write(f'- {home_lineup[i]}')
+    col3.subheader(f'\n{away_team}')
+    col3.markdown(f'### \t{away_score}')
+    col3.write(f'\n {away_manager}')
+    for i in range(len(away_lineup)):
+        col3.write('\n \n \n')
+        col3.write(f'- {away_lineup[i]}')
+
+    st.subheader(f'{stadium} Stadium')
+    st.subheader(f'{comp_stats} Stage')
+
+    # st.subheader('Lineups')
+    # st.write(home_lineup, away_lineup)
     events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
     st.subheader(f'{home_team} shots vs {away_team} shots')
     shots(events, home_team, away_team, matches_id[match])
