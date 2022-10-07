@@ -198,6 +198,60 @@ def away_team_passes(events, away_team, match_id):
     st.image(f'graphs/{away_team}passes-{match_id}.png')
 
 
+## blocks
+def blocks(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    block_id = events['blocks']['block'].dropna()
+    x_h = []
+    y_h = []
+    annotation_h = []
+    player_h = []
+    x_w = []
+    y_w = []
+    annotation_w = []
+    player_w = []
+    for i in range(len(block_id)):
+        if events['blocks']['possession_team'][block_id.keys()[i]] == h:
+            x_h.append(events['blocks']['location'][block_id.keys()[i]][0])
+            y_h.append(events['blocks']['location'][block_id.keys()[i]][1])
+            annotation_h.append(events['blocks']['block'][block_id.keys()[i]])
+            player_h.append(events['blocks']['player'][block_id.keys()[i]])
+
+        elif events['blocks']['possession_team'][block_id.keys()[i]] == w:
+            x_w.append(events['blocks']['location'][block_id.keys()[i]][0])
+            y_w.append(events['blocks']['location'][block_id.keys()[i]][1])
+            annotation_w.append(events['blocks']['block'][block_id.keys()[i]])
+            player_w.append(events['blocks']['player'][block_id.keys()[i]])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    for a in range(len(annotation_h)):
+        plt.annotate(annotation_h[a], (x_h[a] + 0.5, y_h[a]),fontsize=15)
+
+    for b in range(len(annotation_w)):
+        plt.annotate(annotation_w[b], (x_w[b] + 0.5, y_w[b]))
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+
+    plt.savefig('bcnjuveshots.png')
+    plt.savefig(f'graphs/blocks-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/blocks-{match_id}.png')
+
+
 ## streamlit app
 st.title('Discover the competition like couches 😉')
 competition = st.selectbox('Choose the competition', (com_dict.keys()))
@@ -234,12 +288,13 @@ if sub_2:
     st.subheader(f'{comp_stats} Stage')
 
     events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
-    # st.subheader(f"Injury Stoppages")
+    # st.subheader(f"Injury Stoppages Time period")
     # inj_time = []
-    # for i in range(0, len(events['injury_stoppage']) - 1):
+    # x = len(events['injury_stoppage'])
+    # for i in range(x):
     #     inj_time.append(
     #         f"- {events['injury_stoppages']['player'][i]} Time period  {events['injury_stoppages']['minute'][i]}:{events['injury_stoppages']['second'][i]}")
-    # for j in range(0, len(inj_time) - 1):
+    # for j in range(len(inj_time)):
     #     st.write(inj_time[i])
     st.subheader(f'{home_team} shots vs {away_team} shots')
     shots(events, home_team, away_team, matches_id[match])
@@ -251,3 +306,5 @@ if sub_2:
     home_team_passes(events, home_team, matches_id[match])
     st.subheader(f'{away_team} pass map')
     home_team_passes(events, away_team, matches_id[match])
+    st.subheader(f'actions with blocks')
+    blocks(events, home_team, away_team, matches_id[match])
