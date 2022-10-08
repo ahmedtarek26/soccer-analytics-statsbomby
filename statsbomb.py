@@ -58,6 +58,20 @@ def lineups(h, w, data):
     return home_lineups[0].values, away_lineups[0].values
 
 
+## substitutions
+def sub(events, h, w):
+    home_sub_player = []
+    away_sub_player = []
+    for i in range(len(events['substitutions'])):
+        if events['substitutions']['possession_team'][i] == h:
+            home_sub_player.append(
+                f" {events['substitutions']['player'][i]}     {events['substitutions']['position'][i]}")
+        elif events['substitutions']['possession_team'][i] == w:
+            away_sub_player.append(
+                f" {events['substitutions']['player'][i]}     {events['substitutions']['position'][i]}")
+        return home_sub_player, away_sub_player
+
+
 ## events
 def shots(events, h, w, match_id):
     fig, ax = plt.subplots(figsize=(13, 8.5))
@@ -143,13 +157,6 @@ def dribbles(events, h, w, match_id):
     st.image(f'graphs/dribbles-{match_id}.png')
 
 
-## clearances
-def clearance(events, match_id):
-    data = events['clearances']
-    fig = px.bar(data, x='player', color='possession_team')
-    st.plotly_chart(fig)
-
-
 ## passes
 def home_team_passes(events, home_team, match_id):
     x_h = []
@@ -198,6 +205,263 @@ def away_team_passes(events, away_team, match_id):
     st.image(f'graphs/{away_team}passes-{match_id}.png')
 
 
+## foul committeds
+def foul_committed(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x_h = []
+    y_h = []
+    x_w = []
+    y_w = []
+    for i, foul in events['foul_committeds'].iterrows():
+        if events['foul_committeds']['possession_team'][i] == h:
+            x_h.append(foul['location'][0])
+            y_h.append(foul['location'][1])
+        elif events['foul_committeds']['possession_team'][i] == w:
+            x_w.append(foul['location'][0])
+            y_w.append(foul['location'][1])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    total_foul_committed = len(events['foul_committeds'])
+
+    fig_text(s=f'Total Foul Committed: {total_foul_committed}',
+             x=.16, y=.81, fontsize=14, color='black')
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+
+    plt.savefig(f'graphs/committed-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/committed-{match_id}.png')
+
+
+## foul wons
+def foul_won(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x_h = []
+    y_h = []
+    x_w = []
+    y_w = []
+    for i, foul in events['foul_wons'].iterrows():
+        if events['foul_wons']['possession_team'][i] == h:
+            x_h.append(foul['location'][0])
+            y_h.append(foul['location'][1])
+        elif events['foul_wons']['possession_team'][i] == w:
+            x_w.append(foul['location'][0])
+            y_w.append(foul['location'][1])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    total_foul_wons = len(events['foul_wons'])
+
+    fig_text(s=f'Total Foul wons: {total_foul_wons}',
+             x=.16, y=.81, fontsize=14, color='black')
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+    plt.savefig(f'graphs/wons-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/wons-{match_id}.png')
+
+
+## carrys
+def carrys(events, player, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x = []
+    y = []
+    x_end = []
+    y_end = []
+
+    for i, foul in events['carrys'].iterrows():
+        if events['carrys']['player'][i] == player:
+            x.append(foul['location'][0])
+            y.append(foul['location'][1])
+            x_end.append(foul['carry']['end_location'][0])
+            y_end.append(foul['carry']['end_location'][1])
+
+    plt.scatter(x, y, s=100, c='red', alpha=.7, label='Start')
+    plt.scatter(x_end, y_end, s=100, c='blue', alpha=.7, label='End')
+    plt.legend(loc='upper left')
+
+    pitch.arrows(x, y, x_end, y_end,
+                 color='#C7B097', width=2,
+                 headwidth=5, headlength=5, ax=ax)
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+    plt.savefig(f'graphs/carry-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/carry-{match_id}.png')
+
+
+## interception
+def interception(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x_h = []
+    y_h = []
+    x_w = []
+    y_w = []
+    for i, foul in events['interceptions'].iterrows():
+        if events['interceptions']['possession_team'][i] == h:
+            x_h.append(foul['location'][0])
+            y_h.append(foul['location'][1])
+        elif events['interceptions']['possession_team'][i] == w:
+            x_w.append(foul['location'][0])
+            y_w.append(foul['location'][1])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    total_interceptions = len(events['interceptions'])
+
+    fig_text(s=f'Total Interceptions: {total_interceptions}',
+             x=.16, y=.81, fontsize=14, color='black')
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+    plt.savefig(f'graphs/interception-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/interception-{match_id}.png')
+
+
+## dispossesseds
+def dispossesseds(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x_h = []
+    y_h = []
+    x_w = []
+    y_w = []
+    for i, foul in events['dispossesseds'].iterrows():
+        if events['dispossesseds']['possession_team'][i] == h:
+            x_h.append(foul['location'][0])
+            y_h.append(foul['location'][1])
+        elif events['dispossesseds']['possession_team'][i] == w:
+            x_w.append(foul['location'][0])
+            y_w.append(foul['location'][1])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    total_dispossesseds = len(events['dispossesseds'])
+
+    fig_text(s=f'Total Dispossesseds: {total_dispossesseds}',
+             x=.16, y=.81, fontsize=14, color='black')
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+    plt.savefig(f'graphs/dispossessed-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/dispossessed-{match_id}.png')
+
+
+## miscontrols
+def miscontrols(events, h, w, match_id):
+    fig, ax = plt.subplots(figsize=(13, 8.5))
+    fig.set_facecolor('#22312b')
+    ax.patch.set_facecolor('#22312b')
+
+    # The statsbomb pitch from mplsoccer
+    pitch = Pitch(pitch_type='statsbomb',
+                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+
+    pitch.draw(ax=ax)
+
+    # I invert the axis to make it so I am viewing it how I want
+    plt.gca().invert_yaxis()
+
+    # plot the points, you can use a for loop to plot the different outcomes if you want
+    x_h = []
+    y_h = []
+    x_w = []
+    y_w = []
+    for i, foul in events['miscontrols'].iterrows():
+        if events['miscontrols']['possession_team'][i] == h:
+            x_h.append(foul['location'][0])
+            y_h.append(foul['location'][1])
+        elif events['miscontrols']['possession_team'][i] == w:
+            x_w.append(foul['location'][0])
+            y_w.append(foul['location'][1])
+
+    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+
+    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
+    plt.legend(loc="upper left")
+
+    total_miscontrols = len(events['miscontrols'])
+
+    fig_text(s=f'Total Miscontrols: {total_miscontrols}',
+             x=.16, y=.81, fontsize=14, color='black')
+
+    fig.text(.22, .14, f'@ahmedtarek / Github', fontstyle='italic', fontsize=12, color='white')
+    plt.savefig(f'graphs/miscontrol-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/miscontrol-{match_id}.png')
+
+
 ## blocks
 def blocks(events, h, w, match_id):
     fig, ax = plt.subplots(figsize=(13, 8.5))
@@ -240,7 +504,7 @@ def blocks(events, h, w, match_id):
     plt.legend(loc="upper left")
 
     for a in range(len(annotation_h)):
-        plt.annotate(annotation_h[a], (x_h[a] + 0.5, y_h[a]),fontsize=15)
+        plt.annotate(annotation_h[a], (x_h[a] + 0.5, y_h[a]), fontsize=15)
 
     for b in range(len(annotation_w)):
         plt.annotate(annotation_w[b], (x_w[b] + 0.5, y_w[b]))
@@ -284,10 +548,15 @@ if sub_2:
         col3.write('\n \n \n')
         col3.write(f'- {away_lineup[i]}')
 
+    events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
+    # st.subheader('Substitutions')
+    # home_sub, away_sub = sub(events, home_team, away_team)
+    # for i in range(len(home_sub)):
+    #     st.write(f'- {home_sub[i]}')
+    # for i in range(len(away_sub)):
+    #     st.write(f'{away_sub[i]}')
     st.subheader(f'{stadium} Stadium')
     st.subheader(f'{comp_stats} Stage')
-
-    events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
     # st.subheader(f"Injury Stoppages Time period")
     # inj_time = []
     # x = len(events['injury_stoppage'])
@@ -298,13 +567,46 @@ if sub_2:
     #     st.write(inj_time[i])
     st.subheader(f'{home_team} shots vs {away_team} shots')
     shots(events, home_team, away_team, matches_id[match])
+
     st.subheader('Dribbles')
     dribbles(events, home_team, away_team, matches_id[match])
-    st.subheader('Clearances in the match')
-    clearance(events, matches_id[match])
+
     st.subheader(f'{home_team} pass map')
     home_team_passes(events, home_team, matches_id[match])
     st.subheader(f'{away_team} pass map')
     home_team_passes(events, away_team, matches_id[match])
+
+    st.subheader('Foul Committeds in the match')
+    foul_committed(events, home_team, away_team, matches_id[match])
+    st.plotly_chart(px.bar(events['foul_committeds'], x=['player', 'position'], color='position'))
+
+    st.subheader('Foul Wons in the match')
+    foul_won(events, home_team, away_team, matches_id[match])
+    st.plotly_chart(px.bar(events['foul_wons'], x=['player', 'position'], color='position'))
+
+    st.subheader('Clearances in the match')
+    st.plotly_chart(px.bar(events['clearances'], x=['player', 'position'], color='possession_team'))
+
+    st.subheader('Carrys in the match')
+    st.write('A carry is defined as any movement of the ball by a player which is greater than five metres from where '
+             'they received the ball.')
+    st.plotly_chart(px.bar(events['carrys'], x=['player', 'position'], color='position'))
+    for i in range(len(events['carrys']['player'].unique())):
+        st.write(f"#### {events['carrys']['player'].unique()[i]}")
+        carrys(events, events['carrys']['player'].unique()[i], matches_id[match])
+    st.subheader('Interceprions in the match')
+    st.write('Intercepting involves stealing the ball from your opposition')
+    interception(events, home_team, away_team, matches_id[match])
+    st.plotly_chart(px.bar(events['interceptions'], x=['player', 'position'], color='position'))
+
+    st.subheader('Dispossessed in the match')
+    st.write('Dispossessed means being tackled by an opponent without attempting to dribble past them.')
+    dispossesseds(events, home_team, away_team, matches_id[match])
+    st.plotly_chart(px.bar(events['dispossesseds'], x=['player', 'position'], color='position'))
+
+    st.subheader('Miscontrols in the match')
+    miscontrols(events, home_team, away_team, matches_id[match])
+    st.plotly_chart(px.bar(events['miscontrols'], x=['player', 'position'], color='position'))
+
     st.subheader(f'actions with blocks')
     blocks(events, home_team, away_team, matches_id[match])
