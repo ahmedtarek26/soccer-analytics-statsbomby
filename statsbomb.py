@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # # run the app using this line in commnands :streamlit run --theme.base "light" statsbomb.py
+# streamlit
+# numpy
+# matplotlib
+# statsbombpy
+# highlight_text
+# mplsoccer
+# plotly
+# pip3 freeze > requirements.txt
 
 import streamlit as st
 import matplotlib.pyplot as plt
