@@ -9,7 +9,7 @@
 # mplsoccer
 # plotly
 # pip3 freeze > requirements.txt
-
+import numpy as np
 import streamlit as st
 import matplotlib.pyplot as plt
 from statsbombpy import sb
@@ -81,46 +81,105 @@ def sub(events, h, w):
 
 
 ## events
-def shots(events, h, w, match_id):
-    fig, ax = plt.subplots(figsize=(13, 8.5))
-    # The statsbomb pitch from mplsoccer
-    pitch = Pitch(pitch_type='statsbomb', half=True,
-                  pitch_color='grass', line_color='#c7d5cc', stripe=True)
+def shots_goal(shots, h, w, match_id):
+    # Size of the pitch in yards (!!!)
+    pitchLengthX = 120
+    pitchWidthY = 80
 
-    pitch.draw(ax=ax)
+    home_team_required = h
+    away_team_required = w
 
-    # I invert the axis to make it so I am viewing it how I want
-    plt.gca().invert_yaxis()
+    pitch = Pitch(pitch_type='statsbomb', line_color='gray')
+    fig, ax = pitch.draw()
 
-    # plot the points, you can use a for loop to plot the different outcomes if you want
-    x_h = []
-    y_h = []
-    x_w = []
-    y_w = []
-    for i, shot in events['shots'].iterrows():
-        if events['shots']['possession_team'][i] == h:
-            x_h.append(shot['location'][0])
-            y_h.append(shot['location'][1])
-        elif events['shots']['possession_team'][i] == w:
-            x_w.append(shot['location'][0])
-            y_w.append(shot['location'][1])
+    # Plot the shots
+    for i, shot in shots.iterrows():
+        x = shot['location'][0]
+        y = shot['location'][1]
 
-    plt.scatter(x_h, y_h, s=100, c='red', alpha=.7, label=h)
+        goal = shot['shot_outcome'] == 'Goal'
+        team_name = shot['team']
 
-    plt.scatter(x_w, y_w, s=100, c='blue', alpha=.7, label=w)
-    plt.legend(loc="upper left")
+        circleSize = 2
+        circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
 
-    total_shots = len(events['shots'])
+        if (team_name == home_team_required):
+            if goal:
+                shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color="red")
+                plt.text((x + 1), pitchWidthY - y + 2, shot['player'])
+            else:
+                shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color="red")
+                shotCircle.set_alpha(.2)
+        elif (team_name == away_team_required):
+            if goal:
+                shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color="blue")
+                plt.text((pitchLengthX - x + 1), y + 2, shot['player'])
+            else:
+                shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color="blue")
+                shotCircle.set_alpha(.2)
+
+        ax.add_patch(shotCircle)
+    plt.text(15, 75, away_team_required + ' shots')
+    plt.text(80, 75, home_team_required + ' shots')
+
+    total_shots = len(shots)
     fig_text(s=f'Total Shots: {total_shots}',
-             x=.49, y=.67, fontsize=14, color='white')
-
-    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12,
-             color='white')
-
-    plt.savefig(f'graphs/shots-{match_id}.png', dpi=300, bbox_inches='tight', facecolor='#486F38')
+             x=.40, y=.80, fontsize=14, fontfamily='Andale Mono', color='black')
+    fig.text(.10, .12, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, fontfamily='Andale Mono',
+             color='black')
+    fig.set_size_inches(10, 7)
+    plt.savefig(f'graphs/shots-{match_id}.png', dpi=300)
     st.image(f'graphs/shots-{match_id}.png')
+### Goals
+def goals(shots, h, w, match_id):
+    # Size of the pitch in yards (!!!)
+    pitchLengthX = 120
+    pitchWidthY = 80
 
+    home_team_required = h
+    away_team_required = w
 
+    pitch = Pitch(pitch_type='statsbomb', line_color='#c7d5cc')
+    fig, ax = pitch.draw()
+
+    # Plot the shots
+    for i, shot in shots.iterrows():
+        x = shot['location'][0]
+        y = shot['location'][1]
+        x_end = shot['shot_end_location'][0]
+        y_end = shot['shot_end_location'][1]
+
+        goal = shot['shot_outcome'] == 'Goal'
+        team_name = shot['team']
+
+        circleSize = 2
+        circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
+
+        if (team_name == home_team_required):
+            if goal:
+                shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color="red")
+                plt.text((x - 10), pitchWidthY - y - 2, shot['shot_body_part'], fontsize=12)
+                plt.text((x - 10), pitchWidthY - y, f"XG: {round(shot['shot_statsbomb_xg'], 2)}", fontsize=12)
+                pitch.arrows(x, pitchWidthY - y, x_end, pitchWidthY - y_end, color='black', width=1,
+                             headwidth=5, headlength=5, ax=ax)
+            else:
+                continue
+        elif (team_name == away_team_required):
+            if goal:
+                shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color="blue")
+                plt.text((pitchLengthX - x - 10), y - 2, shot['shot_body_part'], fontsize=12)
+                plt.text((pitchLengthX - x - 10), y + 2, f"XG: {round(shot['shot_statsbomb_xg'], 2)}", fontsize=12)
+                pitch.arrows(pitchLengthX - x, y, pitchLengthX - x_end, y_end, color='black', width=2,
+                             headwidth=5, headlength=5, ax=ax)
+            else:
+                continue
+
+        ax.add_patch(shotCircle)
+
+    fig.text(.10, .12, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12,color='black')
+    fig.set_size_inches(10, 7)
+    plt.savefig(f'graphs/goals-{match_id}.png', dpi=300)
+    st.image(f'graphs/goals-{match_id}.png')
 ## Dripples
 def dribbles(events, h, w, match_id):
     fig, ax = plt.subplots(figsize=(13, 8.5))
@@ -321,12 +380,12 @@ def carrys(events, player, match_id):
     x_end = []
     y_end = []
 
-    for i, foul in events['carrys'].iterrows():
+    for i, carry in events['carrys'].iterrows():
         if events['carrys']['player'][i] == player:
-            x.append(foul['location'][0])
-            y.append(foul['location'][1])
-            x_end.append(foul['carry']['end_location'][0])
-            y_end.append(foul['carry']['end_location'][1])
+            x.append(carry['location'][0])
+            y.append(carry['location'][1])
+            x_end.append(carry['carry_end_location'][0])
+            y_end.append(carry['carry_end_location'][1])
 
     plt.scatter(x, y, s=100, c='red', alpha=.7, label='Start')
     plt.scatter(x_end, y_end, s=100, c='blue', alpha=.7, label='End')
@@ -556,7 +615,7 @@ if sub_2:
         col3.write('\n \n \n')
         col3.write(f'- {away_lineup[i]}')
 
-    events = sb.events(match_id=matches_id[match], split=True, flatten_attrs=False)
+    events = sb.events(match_id=matches_id[match], split=True)
     # st.subheader('Substitutions')
     # home_sub, away_sub = sub(events, home_team, away_team)
     # for i in range(len(home_sub)):
@@ -574,7 +633,10 @@ if sub_2:
     # for j in range(len(inj_time)):
     #     st.write(inj_time[i])
     st.subheader(f'{home_team} shots vs {away_team} shots')
-    shots(events, home_team, away_team, matches_id[match])
+    shots_goal(events['shots'], home_team, away_team, matches_id[match])
+
+    st.subheader('Goals')
+    goals(events['shots'], home_team, away_team, matches_id[match])
 
     st.subheader('Dribbles')
     dribbles(events, home_team, away_team, matches_id[match])
@@ -593,14 +655,14 @@ if sub_2:
     st.plotly_chart(px.bar(events['foul_wons'], x=['player', 'position'], color='position'))
 
     st.subheader('Clearances in the match')
-    st.plotly_chart(px.bar(events['clearances'], x=['player', 'position'], color='possession_team'))
+    st.plotly_chart(px.bar(events['clearances'], x=['player'], color='possession_team'))
 
     st.subheader('Carrys in the match')
     st.write('A carry is defined as any movement of the ball by a player which is greater than five metres from where '
              'they received the ball.')
     st.plotly_chart(px.bar(events['carrys'], x=['player', 'position'], color='position'))
     for i in range(len(events['carrys']['player'].unique())):
-        st.write(f"#### {events['carrys']['player'].unique()[i]}")
+        st.write(f"#### {events['carrys']['player'].unique()[i]} ")
         carrys(events, events['carrys']['player'].unique()[i], matches_id[match])
     st.subheader('Interceprions in the match')
     st.write('Intercepting involves stealing the ball from your opposition')
@@ -616,5 +678,5 @@ if sub_2:
     miscontrols(events, home_team, away_team, matches_id[match])
     st.plotly_chart(px.bar(events['miscontrols'], x=['player', 'position'], color='position'))
 
-    st.subheader(f'actions with blocks')
-    blocks(events, home_team, away_team, matches_id[match])
+    # st.subheader(f'actions with blocks')
+    # blocks(events, home_team, away_team, matches_id[match])
