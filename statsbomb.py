@@ -18,6 +18,8 @@ from mplsoccer.pitch import Pitch, VerticalPitch
 from highlight_text import fig_text
 import plotly.express as px
 from dash import dcc
+from mplsoccer import FontManager
+import matplotlib.patheffects as path_effects
 
 ## competitions
 com = sb.competitions()
