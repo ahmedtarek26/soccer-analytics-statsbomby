@@ -24,10 +24,7 @@ if DARK_MODE:
     TEXT_COLOR = "#ffffff"
     HOME_COLOR = "#ff6b6b"
     AWAY_COLOR = "#64b5f6"
-    BUTTON_COLOR = "#4CAF50"
-    BUTTON_HOVER = "#45a049"
     FIG_BG_COLOR = "#2d2d2d"
-    SELECTBOX_BG = "#3d3d3d"
 else:
     BG_COLOR = "#f8f9fa"
     PITCH_COLOR = "#f8f9fa"
@@ -35,10 +32,7 @@ else:
     TEXT_COLOR = "#000000"
     HOME_COLOR = "#d62828"
     AWAY_COLOR = "#003049"
-    BUTTON_COLOR = "#4285F4"
-    BUTTON_HOVER = "#3367D6"
     FIG_BG_COLOR = "#ffffff"
-    SELECTBOX_BG = "#ffffff"
 
 # Font settings
 FONT = 'DejaVu Sans'
@@ -88,7 +82,6 @@ def create_pitch_figure(title, figsize=(10, 6.5)):
             color=TEXT_COLOR, fontfamily=FONT_BOLD, ha='center')
     return fig, ax
 
-# All visualization functions with updated styling
 def shots_goal(shots, h, w, match_id):
     try:
         pitchLengthX = 120
@@ -170,59 +163,282 @@ def goals(shots, h, w, match_id):
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
 
-def defensive_actions(events, h, w, match_id, action_type):
+def dribbles(events, h, w, match_id):
     try:
-        title_map = {
-            'foul_committeds': '🔴 Fouls Committed',
-            'foul_wons': '🟢 Fouls Won',
-            'interceptions': '🛡️ Interceptions',
-            'dispossesseds': '💥 Dispossessions',
-            'miscontrols': '⚠️ Miscontrols'
-        }
-        fig, ax = create_pitch_figure(title_map[action_type])
+        fig, ax = create_pitch_figure('🏃‍♂️ Dribbles')
         
-        if action_type in events:
-            df = events[action_type]
-            for team, color in [(h, HOME_COLOR), (w, AWAY_COLOR)]:
-                team_data = df[df['possession_team'] == team]
-                if not team_data.empty:
-                    x = team_data['location'].apply(lambda loc: loc[0])
-                    y = team_data['location'].apply(lambda loc: loc[1])
-                    ax.scatter(x, y, s=100, color=color, alpha=0.7, label=team)
+        if 'dribbles' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, dribble in events['dribbles'].iterrows():
+                if events['dribbles']['possession_team'][i] == h:
+                    x_h.append(dribble['location'][0])
+                    y_h.append(dribble['location'][1])
+                elif events['dribbles']['possession_team'][i] == w:
+                    x_w.append(dribble['location'][0])
+                    y_w.append(dribble['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
             
             legend = ax.legend(loc="upper left", framealpha=0.8)
             legend.get_frame().set_facecolor(FIG_BG_COLOR)
-            fig_text(s=f'Total Actions: {len(df)}', x=0.15, y=0.85,
-                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-            save_and_display(fig, f'{action_type}-{match_id}.png')
-        else:
-            st.warning(f"No {action_type.replace('_', ' ')} data available")
-    except Exception as e:
-        st.error(f"{action_type} visualization error: {str(e)}")
-
-def carrys(events, h, w, match_id):
-    try:
-        fig, ax = create_pitch_figure('🏃‍♂️ Carries Analysis')
-        
-        if 'carrys' in events:
-            for i, carry in events['carrys'].iterrows():
-                start = carry['location']
-                end = carry['carry_end_location']
-                team = carry['possession_team']
-                color = HOME_COLOR if team == h else AWAY_COLOR
-                
-                ax.scatter(start[0], start[1], s=50, color=color, alpha=0.7, marker='o')
-                ax.scatter(end[0], end[1], s=50, color=color, alpha=0.7, marker='x')
-                pitch.arrows(start[0], start[1], end[0], end[1], 
-                            color=color, width=2, ax=ax, alpha=0.5)
             
-            fig_text(s=f'Total Carries: {len(events["carrys"])}', x=0.15, y=0.85,
+            total_dribbles = len(events['dribbles'])
+            fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
                     fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-            save_and_display(fig, f'carrys-{match_id}.png')
+            save_and_display(fig, f'dribbles-{match_id}.png')
         else:
-            st.warning("No carry data available")
+            st.warning("No dribbles data available")
     except Exception as e:
-        st.error(f"Carry visualization error: {str(e)}")
+        st.error(f"Dribbles visualization error: {str(e)}")
+
+def foul_committed(events, h, w, match_id):
+    try:
+        fig, ax = create_pitch_figure('🔴 Fouls Committed')
+        
+        if 'foul_committeds' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, foul in events['foul_committeds'].iterrows():
+                if events['foul_committeds']['possession_team'][i] == h:
+                    x_h.append(foul['location'][0])
+                    y_h.append(foul['location'][1])
+                elif events['foul_committeds']['possession_team'][i] == w:
+                    x_w.append(foul['location'][0])
+                    y_w.append(foul['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            legend = ax.legend(loc="upper left", framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            
+            total_fouls = len(events['foul_committeds'])
+            fig_text(s=f'Total Fouls: {total_fouls}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'fouls-{match_id}.png')
+        else:
+            st.warning("No fouls data available")
+    except Exception as e:
+        st.error(f"Fouls visualization error: {str(e)}")
+
+def interception(events, h, w, match_id):
+    try:
+        fig, ax = create_pitch_figure('🛡️ Interceptions')
+        
+        if 'interceptions' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, interception in events['interceptions'].iterrows():
+                if events['interceptions']['possession_team'][i] == h:
+                    x_h.append(interception['location'][0])
+                    y_h.append(interception['location'][1])
+                elif events['interceptions']['possession_team'][i] == w:
+                    x_w.append(interception['location'][0])
+                    y_w.append(interception['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            legend = ax.legend(loc="upper left", framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            
+            total_interceptions = len(events['interceptions'])
+            fig_text(s=f'Total Interceptions: {total_interceptions}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'interceptions-{match_id}.png')
+        else:
+            st.warning("No interceptions data available")
+    except Exception as e:
+        st.error(f"Interceptions visualization error: {str(e)}")
+
+def dispossesseds(events, h, w, match_id):
+    try:
+        fig, ax = create_pitch_figure('💥 Dispossessions')
+        
+        if 'dispossesseds' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, dispossessed in events['dispossesseds'].iterrows():
+                if events['dispossesseds']['possession_team'][i] == h:
+                    x_h.append(dispossessed['location'][0])
+                    y_h.append(dispossessed['location'][1])
+                elif events['dispossesseds']['possession_team'][i] == w:
+                    x_w.append(dispossessed['location'][0])
+                    y_w.append(dispossessed['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            legend = ax.legend(loc="upper left", framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            
+            total_dispossessions = len(events['dispossesseds'])
+            fig_text(s=f'Total Dispossessions: {total_dispossessions}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'dispossessions-{match_id}.png')
+        else:
+            st.warning("No dispossessions data available")
+    except Exception as e:
+        st.error(f"Dispossessions visualization error: {str(e)}")
+
+def miscontrols(events, h, w, match_id):
+    try:
+        fig, ax = create_pitch_figure('⚠️ Miscontrols')
+        
+        if 'miscontrols' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, miscontrol in events['miscontrols'].iterrows():
+                if events['miscontrols']['possession_team'][i] == h:
+                    x_h.append(miscontrol['location'][0])
+                    y_h.append(miscontrol['location'][1])
+                elif events['miscontrols']['possession_team'][i] == w:
+                    x_w.append(miscontrol['location'][0])
+                    y_w.append(miscontrol['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            legend = ax.legend(loc="upper left", framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            
+            total_miscontrols = len(events['miscontrols'])
+            fig_text(s=f'Total Miscontrols: {total_miscontrols}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'miscontrols-{match_id}.png')
+        else:
+            st.warning("No miscontrols data available")
+    except Exception as e:
+        st.error(f"Miscontrols visualization error: {str(e)}")
+
+def pass_network(events, team_name, match_id, color):
+    try:
+        if 'passes' not in events:
+            st.warning(f"No passes data found for {team_name}")
+            return
+            
+        passes = events['passes']
+        team_passes = passes[passes['team'] == team_name]
+        if len(team_passes) == 0:
+            st.warning(f"No passes found for {team_name}")
+            return
+            
+        successful_passes = team_passes[team_passes['pass_outcome'].isna()].copy()
+        if len(successful_passes) == 0:
+            st.warning(f"No successful passes found for {team_name}")
+            return
+            
+        locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
+        successful_passes[['x', 'y']] = locations
+        
+        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
+        pass_counts = successful_passes['player'].value_counts()
+        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
+        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
+        
+        pass_connections = successful_passes.groupby(
+            ['player', 'pass_recipient']).size().reset_index(name='count')
+        
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='player', 
+            right_index=True
+        )
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='pass_recipient', 
+            right_index=True,
+            suffixes=['', '_end']
+        )
+        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
+        
+        pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
+                     line_color="black", linewidth=1)
+        fig, ax = pitch.draw(figsize=(10, 6.5))
+        fig.set_facecolor(FIG_BG_COLOR)
+        
+        heatmap_bins = (6, 4)
+        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
+                                        statistic='count', bins=heatmap_bins)
+        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
+                     alpha=0.3, zorder=0.5)
+        
+        pitch.lines(
+            pass_connections.x,
+            pass_connections.y,
+            pass_connections.x_end,
+            pass_connections.y_end,
+            lw=pass_connections.width,
+            color=color,
+            zorder=1,
+            ax=ax
+        )
+        
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size,
+            color=color,
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax,
+            zorder=2
+        )
+        
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size/2,
+            color="white",
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax,
+            zorder=3
+        )
+        
+        for index, row in avg_locations.iterrows():
+            text = ax.text(
+                row.x, row.y,
+                index.split()[-1],
+                color="black",
+                va="center",
+                ha="center",
+                size=10,
+                weight="bold",
+                zorder=4
+            )
+            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
+        
+        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
+        fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
+                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color='black')
+        
+        plt.tight_layout()
+        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
+                   dpi=300, bbox_inches='tight')
+        st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
+        
+    except Exception as e:
+        st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
 def save_and_display(fig, filename):
     fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
@@ -232,37 +448,90 @@ def save_and_display(fig, filename):
     plt.savefig(f'graphs/{filename}', dpi=300, bbox_inches='tight')
     st.image(f'graphs/{filename}')
 
-# Main app function with all visualizations
+# Main app function
 def main():
     st.title('⚽ Football Match Analysis')
     
     try:
+        # Load competitions data
         com = sb.competitions()
-        com_dict = dict(zip(com['competition_name'], com['competition_id']))
-        season_dict = dict(zip(com['season_name'], com['season_id']))
+        com_name = com['competition_name']
+        com_id = com['competition_id']
+        season_name = com['season_name']
+        season_id = com['season_id']
+        
+        com_dict = dict(zip(com_name, com_id))
+        season_dict = dict(zip(season_name, season_id))
         
         competition = st.selectbox('Choose the competition', com_dict.keys())
         season = st.selectbox('Choose the season', season_dict.keys())
         
+        # Load matches data
         data = sb.matches(competition_id=com_dict[competition], season_id=season_dict[season])
         matches_names, matches_idx, matches_id_dict = matches_id(data)
         match = st.selectbox('Select the match', matches_names)
         
-        if st.button('Analyze Match', type='primary'):
+        if st.button('Analyze Match'):  # Removed the 'type' parameter
             home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
                 data, matches_idx[match])
             
             match_id = matches_id_dict[match]
+            
+            # Load lineups
+            lineup_data = sb.lineups(match_id=match_id)
+            home_lineup, away_lineup = lineups(home_team, away_team, lineup_data)
+            
+            # Match header
+            st.markdown(f"""
+                <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
+                        padding:1.5rem;border-radius:12px;margin-bottom:2rem;color:white;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div style="text-align:center;flex:1;">
+                            <h2 style="color:white;margin-bottom:0;">{home_team}</h2>
+                            <h1 style="color:white;margin-top:0;">{home_score}</h1>
+                        </div>
+                        <div style="text-align:center;flex:1;">
+                            <h3 style="color:white;">vs</h3>
+                            <p style="color:white;margin-bottom:0;">{comp_stats}</p>
+                            <p style="color:white;margin-top:0;">🏟️ {stadium}</p>
+                        </div>
+                        <div style="text-align:center;flex:1;">
+                            <h2 style="color:white;margin-bottom:0;">{away_team}</h2>
+                            <h1 style="color:white;margin-top:0;">{away_score}</h1>
+                        </div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            # Lineups
+            col1, col2, col3 = st.columns([2, 1, 2])
+            
+            with col1:
+                with st.container():
+                    st.subheader(f'👥 {home_team} Lineup')
+                    st.markdown(f"**👨‍💼 Manager:** {home_manager}")
+                    for player in home_lineup:
+                        st.markdown(f"- ⚽ {player}")
+            
+            with col3:
+                with st.container():
+                    st.subheader(f'👥 {away_team} Lineup')
+                    st.markdown(f"**👨‍💼 Manager:** {away_manager}")
+                    for player in away_lineup:
+                        st.markdown(f"- ⚽ {player}")
+
+            # Load events
             events = sb.events(match_id=match_id, split=True)
             
-            # Main visualization tabs
+            # Visualizations
+            st.markdown("---")
+            st.header("📊 Match Visualizations")
+            
             tab1, tab2, tab3 = st.tabs(["⚔️ Attack Analysis", "🛡️ Defense Analysis", "📊 Match Stats"])
             
             with tab1:
                 shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
                 goals(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
-                
-                st.subheader("🎯 Dribbles")
                 dribbles(events, home_team, away_team, match_id)
                 
                 st.subheader("📶 Pass Networks")
@@ -273,44 +542,72 @@ def main():
                     pass_network(events, away_team, match_id, AWAY_COLOR)
             
             with tab2:
-                defensive_actions(events, home_team, away_team, match_id, 'foul_committeds')
-                defensive_actions(events, home_team, away_team, match_id, 'foul_wons')
-                defensive_actions(events, home_team, away_team, match_id, 'interceptions')
-                defensive_actions(events, home_team, away_team, match_id, 'dispossesseds')
-                defensive_actions(events, home_team, away_team, match_id, 'miscontrols')
-                carrys(events, home_team, away_team, match_id)
+                foul_committed(events, home_team, away_team, match_id)
+                interception(events, home_team, away_team, match_id)
+                dispossesseds(events, home_team, away_team, match_id)
+                miscontrols(events, home_team, away_team, match_id)
             
             with tab3:
                 st.subheader("📈 Match Statistics")
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.metric("🏟️ Stadium", stadium)
-                    st.metric("📅 Competition Stage", comp_stats)
-                    st.metric("👨‍💼 Home Manager", home_manager)
-                    st.metric("👨‍💼 Away Manager", away_manager)
-                
-                with col2:
-                    stats_data = {
-                        'Category': ['Shots', 'Passes', 'Fouls', 'Corners'],
-                        home_team: [
-                            len(events.get('shots', [])),
-                            len(events.get('passes', [])),
-                            len(events.get('foul_committeds', [])),
-                            len([e for e in events.get('shots', []) if e.get('shot_type') == 'Corner'])
-                        ],
-                        away_team: [
-                            len(events.get('shots', [])),
-                            len(events.get('passes', [])),
-                            len(events.get('foul_committeds', [])),
-                            len([e for e in events.get('shots', []) if e.get('shot_type') == 'Corner'])
-                        ]
-                    }
-                    st.dataframe(pd.DataFrame(stats_data), use_container_width=True)
+                if 'shots' in events:
+                    st.plotly_chart(px.bar(events['shots'], x=['player', 'position'], color='team', 
+                                         title="Shots by Player"))
+                if 'foul_committeds' in events:
+                    st.plotly_chart(px.bar(events['foul_committeds'], x=['player', 'position'], color='team',
+                                         title="Fouls Committed"))
+                if 'foul_wons' in events:
+                    st.plotly_chart(px.bar(events['foul_wons'], x=['player', 'position'], color='team',
+                                        title="Fouls Won"))
+                if 'carrys' in events:
+                    st.plotly_chart(px.bar(events['carrys'], x=['player', 'position'], color='team',
+                                       title="Carries"))
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
+# Commented pass map functions (keep in code but not called)
+"""
+def home_team_passes(events, home_team, match_id):
+    x_h = []
+    y_h = []
+
+    for i, shot in events['passes'].iterrows():
+        if events['passes']['possession_team'][i] == home_team:
+            x_h.append(shot['location'][0])
+            y_h.append(shot['location'][1])
+
+    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
+    bins = (6, 4)
+
+    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+    fig_text(s=f'{home_team} Passes: {len(x_h)}',
+             x=.49, y=.67, fontsize=14, color='yellow')
+    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
+    bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
+    plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/{home_team}passes-{match_id}.png')
+
+def away_team_passes(events, away_team, match_id):
+    x_w = []
+    y_w = []
+    for i, shot in events['dribbles'].iterrows():
+        if events['dribbles']['possession_team'][i] == away_team:
+            x_w.append(shot['location'][0])
+            y_w.append(shot['location'][1])
+
+    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
+    bins = (6, 4)
+    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+    fig_text(s=f'{away_team} Passes: {len(x_w)}',
+             x=.49, y=.67, fontsize=14, color='yellow')
+    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
+    fig.set_facecolor('#22312b')
+    bs_heatmap = pitch.bin_statistic(x_w, y_w, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Reds')
+    plt.savefig(f'graphs/{away_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/{away_team}passes-{match_id}.png')
+"""
 
 if __name__ == "__main__":
     main()
