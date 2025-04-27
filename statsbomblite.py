@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# Updated for Streamlit Cloud deployment with enhanced design
+
+import os
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -8,202 +11,190 @@ from statsbombpy import sb
 from mplsoccer.pitch import Pitch, VerticalPitch
 from highlight_text import fig_text
 import plotly.express as px
-from dash import dcc
 from mplsoccer import FontManager
 import matplotlib.patheffects as path_effects
 
-# ========== STYLING SETTINGS ==========
-# Custom font setup
-URL = "https://raw.githubusercontent.com/google/fonts/main/ofl/raleway/Raleway%5Bwght%5D.ttf"
-custom_font = FontManager(URL)
+# ========== SETUP & CONFIGURATION ==========
+# Create graphs directory if not exists
+if not os.path.exists('graphs'):
+    os.makedirs('graphs')
 
-# Color palette
+# Custom Font Setup
+font_url = "https://raw.githubusercontent.com/google/fonts/main/ofl/raleway/Raleway%5Bwght%5D.ttf"
+custom_font = FontManager(font_url)
+
+# Color Palette
 PALETTE = {
     'background': '#f8f9fa',
     'text': '#212529',
-    'primary': '#4361ee',
-    'secondary': '#3a0ca3',
+    'primary': '#4361ee',  # Blue
+    'secondary': '#3a0ca3',  # Dark Blue
     'accent': '#7209b7',
-    'success': '#4cc9f0',
-    'danger': '#f72585',
-    'warning': '#f8961e',
-    'info': '#4895ef'
+    'home': '#e63946',  # Red
+    'away': '#457b9d',  # Blue
+    'pitch': '#f8f9fa',
+    'line': '#495057'
 }
 
-# Pitch styling
+# Pitch Style
 PITCH_STYLE = {
-    'pitch_color': '#f8f9fa',
-    'line_color': '#495057',
-    'linewidth': 1.5,
-    'spot_scale': 0.005
+    'pitch_type': 'statsbomb',
+    'pitch_color': PALETTE['pitch'],
+    'line_color': PALETTE['line'],
+    'linewidth': 1.5
 }
 
 # ========== HELPER FUNCTIONS ==========
-def setup_plot(title="", subtitle="", figsize=(12, 8)):
-    """Set up a standardized plot with consistent styling"""
-    fig, ax = plt.subplots(figsize=figsize)
+def setup_figure(title="", size=(12, 8)):
+    """Create standardized figure with consistent styling"""
+    fig, ax = plt.subplots(figsize=size)
     fig.set_facecolor(PALETTE['background'])
     ax.patch.set_facecolor(PALETTE['background'])
-    
     if title:
-        fig.suptitle(title, 
-                    fontproperties=custom_font.prop, 
-                    fontsize=24, 
-                    color=PALETTE['text'],
-                    y=0.95)
-    if subtitle:
-        ax.set_title(subtitle, 
-                    fontproperties=custom_font.prop,
-                    fontsize=16,
-                    color=PALETTE['text'],
-                    pad=20)
-    
+        fig.suptitle(title, fontproperties=custom_font.prop, fontsize=20, color=PALETTE['text'])
     return fig, ax
 
 def add_credit(fig):
-    """Add consistent credit line to plots"""
-    fig.text(0.1, 0.02, 
-            '@ahmedtarek26 / Github', 
-            fontstyle='italic', 
-            fontsize=10, 
-            color=PALETTE['text'],
-            fontproperties=custom_font.prop)
+    """Add consistent credit to visualizations"""
+    fig.text(0.1, 0.02, '@ahmedtarek26 / Github', 
+            fontstyle='italic', fontsize=10, 
+            color=PALETTE['text'], fontproperties=custom_font.prop)
 
-# ========== VISUALIZATION FUNCTIONS ==========
+# ========== ORIGINAL PROJECT FUNCTIONS (UPDATED) ==========
+## competitions
+com = sb.competitions()
+com_dict = dict(zip(com['competition_name'], com['competition_id']))
+season_dict = dict(zip(com['season_name'], com['season_id']))
+
+## Matches
+def matches_id(data):
+    match_id = []
+    match_name = []
+    match_index = []
+    for i in range(len(data)):
+        match_index.append(i)
+        match_id.append(data['match_id'][i])
+        match_name.append(f"{data['home_team'][i]} vs {data['away_team'][i]} ({data['competition_stage'][i]})")
+    return match_name, dict(zip(match_name, match_index)), dict(zip(match_name, match_id))
+
+def match_data(data, match_index):
+    return (
+        data['home_team'][match_index],
+        data['away_team'][match_index],
+        data['home_score'][match_index],
+        data['away_score'][match_index],
+        data['stadium'][match_index],
+        data['home_managers'][match_index],
+        data['away_managers'][match_index],
+        data['competition_stage'][match_index]
+    )
+
+## Lineups
+def lineups(h, w, data):
+    return data[h]['player_name'].values, data[w]['player_name'].values
+
+## Visualizations (updated with new design)
+def shots_goal(shots, h, w, match_id):
+    fig, ax = setup_figure(f"{h} vs {w} Shot Map", (12, 8))
+    pitch = Pitch(**PITCH_STYLE)
+    pitch.draw(ax=ax)
+    
+    for _, shot in shots.iterrows():
+        x, y = shot['location']
+        team = shot['team']
+        goal = shot['shot_outcome'] == 'Goal'
+        color = PALETTE['home'] if team == h else PALETTE['away']
+        
+        if team == h:
+            y = 80 - y  # Flip for home team
+        
+        size = np.sqrt(shot['shot_statsbomb_xg']) * 8
+        alpha = 1 if goal else 0.5
+        
+        circle = plt.Circle((x, y), size, color=color, alpha=alpha)
+        ax.add_patch(circle)
+        
+        if goal:
+            plt.text(x, y + 2, shot['player'], 
+                    fontsize=10, ha='center', 
+                    fontproperties=custom_font.prop)
+    
+    fig_text(s=f'Total Shots: {len(shots)}',
+             x=0.4, y=0.85, fontsize=14,
+             fontproperties=custom_font.prop)
+    add_credit(fig)
+    plt.savefig(f'graphs/shots-{match_id}.png', dpi=300)
+    st.image(f'graphs/shots-{match_id}.png')
+
 def pass_network(events, team_name, match_id, color=PALETTE['primary']):
-    """Enhanced pass network visualization with modern styling"""
     try:
-        # Data processing
         passes = events['passes']
         team_passes = passes[passes['team'] == team_name]
-        successful_passes = team_passes[team_passes['pass_outcome'].isna()].copy()
+        successful = team_passes[team_passes['pass_outcome'].isna()].copy()
         
-        # Extract coordinates
-        locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
-        successful_passes[['x', 'y']] = locations
+        # Extract locations
+        locs = successful['location'].apply(pd.Series)
+        successful[['x', 'y']] = locs
         
         # Calculate metrics
-        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
-        pass_counts = successful_passes['player'].value_counts()
-        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
-        avg_locations['marker_size'] = 400 + (1600 * (avg_locations['pass_count'] / pass_counts.max()))
+        avg_loc = successful.groupby('player')[['x', 'y']].mean()
+        pass_counts = successful['player'].value_counts()
+        avg_loc['size'] = 300 + (1200 * pass_counts / pass_counts.max())
         
-        # Pass connections
-        pass_connections = successful_passes.groupby(['player', 'pass_recipient']).size().reset_index(name='count')
-        pass_connections = pass_connections.merge(avg_locations[['x', 'y']], left_on='player', right_index=True)
-        pass_connections = pass_connections.merge(avg_locations[['x', 'y']], left_on='pass_recipient', right_index=True, suffixes=['', '_end'])
-        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
+        # Connections
+        connections = successful.groupby(['player', 'pass_recipient']).size().reset_index(name='count')
+        connections = connections.merge(avg_loc, left_on='player', right_index=True)
+        connections = connections.merge(avg_loc, left_on='pass_recipient', right_index=True, suffixes=['', '_end'])
+        connections['width'] = 1 + (4 * connections['count'] / connections['count'].max())
         
-        # Setup plot
-        pitch = Pitch(pitch_type="statsbomb", **PITCH_STYLE)
-        fig, ax = setup_plot(
-            title=f"{team_name} Pass Network",
-            subtitle=f"Total Successful Passes: {len(successful_passes)}",
-            figsize=(14, 9)
-        )
+        # Visualization
+        fig, ax = setup_figure(f"{team_name} Pass Network", (14, 9))
+        pitch = Pitch(**PITCH_STYLE)
         pitch.draw(ax=ax)
         
-        # Heatmap layer
-        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], statistic='count', bins=(12, 8))
-        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == PALETTE['primary'] else 'Reds', alpha=0.25, zorder=1)
+        # Heatmap
+        bs_heatmap = pitch.bin_statistic(successful['x'], successful['y'], bins=(12, 8))
+        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == PALETTE['primary'] else 'Reds', alpha=0.25)
         
-        # Pass connections
+        # Connections
         pitch.lines(
-            pass_connections.x, pass_connections.y,
-            pass_connections.x_end, pass_connections.y_end,
-            lw=pass_connections.width,
+            connections.x, connections.y,
+            connections.x_end, connections.y_end,
+            lw=connections.width,
             color=color,
-            zorder=2,
             ax=ax,
-            comet=True,
-            alpha=0.7
+            alpha=0.6
         )
         
-        # Player nodes
+        # Nodes
         pitch.scatter(
-            avg_locations.x, avg_locations.y,
-            s=avg_locations.marker_size,
+            avg_loc.x, avg_loc.y,
+            s=avg_loc['size'],
             color=color,
-            edgecolors=PALETTE['text'],
+            edgecolors='white',
             linewidth=1,
-            alpha=1,
-            ax=ax,
-            zorder=3
+            ax=ax
         )
         
-        # Player labels
-        for index, row in avg_locations.iterrows():
-            text = pitch.annotate(
-                index.split()[-1],
-                xy=(row.x, row.y),
-                color=PALETTE['text'],
-                va='center',
-                ha='center',
-                size=12,
-                weight='bold',
-                ax=ax,
-                zorder=4,
-                fontproperties=custom_font.prop
-            )
-            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground='white')])
+        # Labels
+        for idx, row in avg_loc.iterrows():
+            ax.text(row.x, row.y, idx.split()[-1],
+                   ha='center', va='center',
+                   fontsize=10, color='white',
+                   fontproperties=custom_font.prop,
+                   path_effects=[path_effects.withStroke(linewidth=2, foreground='black')])
         
         add_credit(fig)
-        plt.tight_layout()
-        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', dpi=300, bbox_inches='tight')
+        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', dpi=300)
         st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
         
     except Exception as e:
         st.error(f"Error creating pass network: {str(e)}")
 
-def shots_goal(shots, h, w, match_id):
-    """Modernized shot visualization"""
-    pitch = Pitch(pitch_type='statsbomb', **PITCH_STYLE)
-    fig, ax = setup_plot(
-        title=f"{h} vs {w} Shots",
-        subtitle=f"Total Shots: {len(shots)}",
-        figsize=(12, 8)
-    )
-    pitch.draw(ax=ax)
-    
-    for i, shot in shots.iterrows():
-        x, y = shot['location']
-        goal = shot['shot_outcome'] == 'Goal'
-        team_name = shot['team']
-        
-        size = np.sqrt(shot['shot_statsbomb_xg']) * 8
-        color = PALETTE['primary'] if team_name == h else PALETTE['secondary']
-        
-        if team_name == h:
-            y = 80 - y  # Flip y-axis for home team
-            
-        # Plot shot
-        shot_circle = plt.Circle((x, y), size, color=color, alpha=0.7 if not goal else 1)
-        ax.add_patch(shot_circle)
-        
-        # Annotate goals
-        if goal:
-            text = pitch.annotate(
-                f"{shot['player']} ({shot['shot_body_part']}, xG: {shot['shot_statsbomb_xg']:.2f})",
-                xy=(x, y),
-                xytext=(0, 15),
-                textcoords='offset points',
-                ha='center',
-                color=PALETTE['text'],
-                fontproperties=custom_font.prop,
-                size=10
-            )
-            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground='white')])
-    
-    add_credit(fig)
-    plt.tight_layout()
-    plt.savefig(f'graphs/shots-{match_id}.png', dpi=300)
-    st.image(f'graphs/shots-{match_id}.png')
-
 # ========== STREAMLIT APP ==========
 def main():
-    # App config
     st.set_page_config(
-        page_title="Football Analytics Dashboard",
+        page_title="Football Analytics",
         page_icon="⚽",
         layout="wide"
     )
@@ -214,60 +205,37 @@ def main():
             .stApp {{
                 background-color: {PALETTE['background']};
             }}
-            .css-1d391kg {{
-                padding-top: 3.5rem;
-            }}
-            h1 {{
-                color: {PALETTE['primary']};
-                font-family: 'Raleway';
-            }}
-            .stSelectbox label {{
-                font-weight: bold;
+            h1, h2, h3 {{
                 color: {PALETTE['text']};
+                font-family: 'Raleway';
+            }}
+            .stSelectbox > label {{
+                font-weight: bold;
             }}
         </style>
     """, unsafe_allow_html=True)
     
-    # Header
-    st.title('⚽ Advanced Football Analytics')
-    st.markdown("""
-        <style>
-            div[data-testid="stMarkdownContainer"] > p {
-                font-family: 'Raleway';
-                color: #495057;
-            }
-        </style>
-    """, unsafe_allow_html=True)
+    st.title('⚽ Football Match Analysis')
     
-    # Data loading
-    com = sb.competitions()
-    com_dict = dict(zip(com['competition_name'], com['competition_id']))
-    season_dict = dict(zip(com['season_name'], com['season_id']))
-    
-    # UI Elements
+    # Competition selection
     col1, col2 = st.columns(2)
     with col1:
-        competition = st.selectbox('Select Competition', com_dict.keys(), 
-                                 help="Choose the competition to analyze")
+        competition = st.selectbox('Competition', com_dict.keys())
     with col2:
-        season = st.selectbox('Select Season', season_dict.keys(),
-                            help="Choose the season to analyze")
+        season = st.selectbox('Season', season_dict.keys())
     
+    # Match selection
     data = sb.matches(competition_id=com_dict[competition], season_id=season_dict[season])
-    matches_names, matches_idx, matches_id = matches_id(data)
+    matches, matches_idx, matches_id_dict = matches_id(data)
+    match = st.selectbox('Select Match', matches)
     
-    match = st.selectbox('Select Match', matches_names,
-                        help="Choose a specific match to analyze")
-    
-    if st.button('Analyze Match', type="primary"):
-        with st.spinner('Processing match data...'):
-            analyze_match(data, matches_idx[match], matches_id[match])
+    if st.button('Analyze', type="primary"):
+        with st.spinner('Loading match data...'):
+            analyze_match(data, matches_idx[match], matches_id_dict[match])
 
 def analyze_match(data, match_idx, match_id):
-    """Main analysis function with improved layout"""
-    # Match info
     home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(data, match_idx)
-    home_lineup, away_lineup = lineups(home_team, away_team, data=sb.lineups(match_id=match_id))
+    home_lineup, away_lineup = lineups(home_team, away_team, sb.lineups(match_id=match_id))
     events = sb.events(match_id=match_id, split=True)
     
     # Match header
@@ -275,40 +243,39 @@ def analyze_match(data, match_idx, match_id):
     st.caption(f"{stadium} | {comp_stats}")
     
     # Lineups
-    with st.expander("📋 Team Lineups", expanded=True):
+    with st.expander("Team Lineups", expanded=True):
         col1, col2, col3 = st.columns([2, 1, 2])
         with col1:
             st.subheader(home_team)
-            st.markdown(f"**Manager:** {home_manager}")
-            st.markdown("**Starting XI:**")
+            st.write(f"Manager: {home_manager}")
+            st.write("**Starting XI:**")
             for player in home_lineup:
-                st.markdown(f"- {player}")
+                st.write(f"- {player}")
         with col2:
             st.metric("Score", f"{home_score} - {away_score}")
         with col3:
             st.subheader(away_team)
-            st.markdown(f"**Manager:** {away_manager}")
-            st.markdown("**Starting XI:**")
+            st.write(f"Manager: {away_manager}")
+            st.write("**Starting XI:**")
             for player in away_lineup:
-                st.markdown(f"- {player}")
+                st.write(f"- {player}")
     
     # Visualizations
-    tab1, tab2, tab3, tab4 = st.tabs(["📊 Shots & Goals", "🔀 Passing Networks", "⚔️ Defensive Actions", "🏃 Player Movements"])
+    st.subheader("Match Analysis")
+    tab1, tab2 = st.tabs(["Shots & Goals", "Passing Networks"])
     
     with tab1:
         st.subheader("Shot Map")
         shots_goal(events['shots'], home_team, away_team, match_id)
-        
-        st.subheader("Goals Analysis")
-        goals(events['shots'], home_team, away_team, match_id)
     
     with tab2:
         col1, col2 = st.columns(2)
         with col1:
-            st.subheader(f"{home_team} Passing Network")
-            pass_network(events, home_team, match_id, color=PALETTE['primary'])
+            st.subheader(f"{home_team} Passing")
+            pass_network(events, home_team, match_id, color=PALETTE['home'])
         with col2:
-            st.subheader(f"{away_team} Passing Network")
-            pass_network(events, away_team, match_id, color=PALETTE['secondary'])
-    
-    # ... (other tabs and visualizations)
+            st.subheader(f"{away_team} Passing")
+            pass_network(events, away_team, match_id, color=PALETTE['away'])
+
+if __name__ == "__main__":
+    main()
