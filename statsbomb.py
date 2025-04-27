@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import numpy as np
+import pandas as pd
+import streamlit as st
+import matplotlib.pyplot as plt
+from statsbombpy import sb
+from mplsoccer.pitch import Pitch, VerticalPitch
+from highlight_text import fig_text
+import plotly.express as px
+from dash import dcc
+from mplsoccer import FontManager
+import matplotlib.patheffects as path_effects
+
 # Custom styling with dark mode support
 DARK_MODE = True  # Set to False for light mode
 
@@ -237,6 +249,120 @@ def home_team_passes(events, home_team, match_id):
     plt.tight_layout()
     plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/{home_team}passes-{match_id}.png')
+
+def pass_network(events, team_name, match_id, color):
+    try:
+        if 'passes' not in events:
+            st.warning(f"No passes data found for {team_name}")
+            return
+            
+        passes = events['passes']
+        team_passes = passes[passes['team'] == team_name]
+        if len(team_passes) == 0:
+            st.warning(f"No passes found for {team_name}")
+            return
+            
+        successful_passes = team_passes[team_passes['pass_outcome'].isna()].copy()
+        if len(successful_passes) == 0:
+            st.warning(f"No successful passes found for {team_name}")
+            return
+            
+        locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
+        successful_passes[['x', 'y']] = locations
+        
+        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
+        pass_counts = successful_passes['player'].value_counts()
+        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
+        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
+        
+        pass_connections = successful_passes.groupby(
+            ['player', 'pass_recipient']).size().reset_index(name='count')
+        
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='player', 
+            right_index=True
+        )
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='pass_recipient', 
+            right_index=True,
+            suffixes=['', '_end']
+        )
+        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
+        
+        pitch = Pitch(pitch_type="statsbomb", pitch_color=PITCH_COLOR, 
+                     line_color=LINE_COLOR, linewidth=1)
+        fig, ax = pitch.draw(figsize=(10, 6.5))
+        fig.set_facecolor(FIG_BG_COLOR)
+        
+        heatmap_bins = (6, 4)
+        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
+                                        statistic='count', bins=heatmap_bins)
+        pitch.heatmap(bs_heatmap, ax=ax, cmap='Reds' if color == HOME_COLOR else 'Blues', 
+                     alpha=0.2, zorder=0.5)
+        
+        pitch.lines(
+            pass_connections.x,
+            pass_connections.y,
+            pass_connections.x_end,
+            pass_connections.y_end,
+            lw=pass_connections.width,
+            color=color,
+            zorder=1,
+            ax=ax,
+            alpha=0.6
+        )
+        
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size,
+            color=color,
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax,
+            zorder=2
+        )
+        
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size/2,
+            color="white",
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax,
+            zorder=3
+        )
+        
+        for index, row in avg_locations.iterrows():
+            text = ax.text(
+                row.x, row.y,
+                index.split()[-1],
+                color=TEXT_COLOR,
+                va="center",
+                ha="center",
+                size=FONT_SIZE_SM,
+                weight="bold",
+                zorder=4,
+                fontfamily=FONT
+            )
+            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
+        
+        ax.set_title(f"{team_name} Pass Network", fontsize=FONT_SIZE_LG, pad=20, fontfamily=FONT_BOLD)
+        fig.text(0.1, 0.02, '@ahmedtarek26 / Github', 
+                fontstyle='italic', fontsize=FONT_SIZE_SM, fontfamily=FONT, color=TEXT_COLOR)
+        
+        plt.tight_layout()
+        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
+                   dpi=300, bbox_inches='tight')
+        st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
+        
+    except Exception as e:
+        st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
 ## streamlit app
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
