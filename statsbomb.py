@@ -99,8 +99,8 @@ def shots_goal(shots, h, w, match_id):
     pitchLengthX = 120
     pitchWidthY = 80
 
-    pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR)
-    fig, ax = pitch.draw(figsize=(10, 6.5))  # New size
+    pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+    fig, ax = pitch.draw(figsize=(10, 6.5))
     fig.set_facecolor(FIG_BG_COLOR)
 
     for i, shot in shots.iterrows():
@@ -113,28 +113,37 @@ def shots_goal(shots, h, w, match_id):
         if (team_name == h):
             if goal:
                 shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color=HOME_COLOR)
-                plt.text((x + 1), pitchWidthY - y + 2, shot['player'])
+                # Improved player name text
+                text = ax.text(x + 1, pitchWidthY - y + 2, shot['player'], 
+                             fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
+                             ha='center', va='center', fontfamily=FONT)
+                text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
             else:
                 shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color=HOME_COLOR)
                 shotCircle.set_alpha(.2)
         elif (team_name == w):
             if goal:
                 shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color=AWAY_COLOR)
-                plt.text((pitchLengthX - x + 1), y + 2, shot['player'])
+                # Improved player name text
+                text = ax.text(pitchLengthX - x + 1, y + 2, shot['player'], 
+                             fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                             ha='center', va='center', fontfamily=FONT)
+                text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
             else:
                 shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color=AWAY_COLOR)
                 shotCircle.set_alpha(.2)
 
         ax.add_patch(shotCircle)
     
-    plt.text(15, 75, w + ' shots')
-    plt.text(80, 75, h + ' shots')
+    plt.text(15, 75, w + ' shots', color=TEXT_COLOR, fontfamily=FONT)
+    plt.text(80, 75, h + ' shots', color=TEXT_COLOR, fontfamily=FONT)
 
     total_shots = len(shots)
     fig_text(s=f'Total Shots: {total_shots}',
-             x=.40, y=.80, fontsize=14, fontfamily='Andale Mono', color=TEXT_COLOR)
-    fig.text(.10, .12, f'@ahmedtarek26 / Github', 
-             fontstyle='italic', fontsize=12, fontfamily='Andale Mono', color=TEXT_COLOR)
+             x=.40, y=.80, fontsize=FONT_SIZE_LG, fontfamily=FONT_BOLD, color=TEXT_COLOR)
+    # Moved credit to bottom left with smaller font
+    fig.text(.02, .02, f'@ahmedtarek26 / Github', 
+             fontstyle='italic', fontsize=FONT_SIZE_SM-2, fontfamily=FONT, color=TEXT_COLOR)
     
     plt.tight_layout()
     plt.savefig(f'graphs/shots-{match_id}.png', dpi=300, bbox_inches='tight')
@@ -144,8 +153,8 @@ def goals(shots, h, w, match_id):
     pitchLengthX = 120
     pitchWidthY = 80
 
-    pitch = Pitch(pitch_type='statsbomb', line_color='#c7d5cc')
-    fig, ax = pitch.draw(figsize=(10, 6.5))  # New size
+    pitch = Pitch(pitch_type='statsbomb', line_color='#c7d5cc', pitch_color=PITCH_COLOR)
+    fig, ax = pitch.draw(figsize=(10, 6.5))
     fig.set_facecolor(FIG_BG_COLOR)
 
     for i, shot in shots.iterrows():
@@ -160,34 +169,49 @@ def goals(shots, h, w, match_id):
         if (team_name == h):
             if goal:
                 shotCircle = plt.Circle((x, pitchWidthY - y), circleSize, color=HOME_COLOR)
-                plt.text((x - 10), pitchWidthY - y - 2, shot['shot_body_part'], fontsize=12)
-                plt.text((x - 10), pitchWidthY - y, f"XG: {round(shot['shot_statsbomb_xg'], 2)}", fontsize=12)
-                pitch.arrows(x, pitchWidthY - y, x_end, pitchWidthY - y_end, color='black', width=1,
-                             headwidth=5, headlength=5, ax=ax)
+                # Improved text styling
+                text1 = ax.text(x - 10, pitchWidthY - y - 2, shot['shot_body_part'], 
+                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
+                text1.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
+                
+                text2 = ax.text(x - 10, pitchWidthY - y, f"xG: {round(shot['shot_statsbomb_xg'], 2)}", 
+                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
+                text2.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
+                
+                pitch.arrows(x, pitchWidthY - y, x_end, pitchWidthY - y_end, 
+                           color=TEXT_COLOR, width=1, headwidth=5, headlength=5, ax=ax)
         elif (team_name == w):
             if goal:
                 shotCircle = plt.Circle((pitchLengthX - x, y), circleSize, color=AWAY_COLOR)
-                plt.text((pitchLengthX - x - 10), y - 2, shot['shot_body_part'], fontsize=12)
-                plt.text((pitchLengthX - x - 10), y + 2, f"XG: {round(shot['shot_statsbomb_xg'], 2)}", fontsize=12)
-                pitch.arrows(pitchLengthX - x, y, pitchLengthX - x_end, y_end, color='black', width=2,
-                             headwidth=5, headlength=5, ax=ax)
+                # Improved text styling
+                text1 = ax.text(pitchLengthX - x - 10, y - 2, shot['shot_body_part'], 
+                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
+                text1.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
+                
+                text2 = ax.text(pitchLengthX - x - 10, y + 2, f"xG: {round(shot['shot_statsbomb_xg'], 2)}", 
+                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
+                text2.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
+                
+                pitch.arrows(pitchLengthX - x, y, pitchLengthX - x_end, y_end, 
+                           color=TEXT_COLOR, width=2, headwidth=5, headlength=5, ax=ax)
 
         if goal:
             ax.add_patch(shotCircle)
 
-    fig.text(.10, .12, f'@ahmedtarek26 / Github', 
-             fontstyle='italic', fontsize=12, color=TEXT_COLOR)
+    # Moved credit to bottom left with smaller font
+    fig.text(.02, .02, f'@ahmedtarek26 / Github', 
+             fontstyle='italic', fontsize=FONT_SIZE_SM-2, fontfamily=FONT, color=TEXT_COLOR)
     
     plt.tight_layout()
     plt.savefig(f'graphs/goals-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/goals-{match_id}.png')
 
 def dribbles(events, h, w, match_id):
-    fig, ax = plt.subplots(figsize=(10, 6.5))  # New size
+    fig, ax = plt.subplots(figsize=(10, 6.5))
     fig.set_facecolor(FIG_BG_COLOR)
     ax.patch.set_facecolor(FIG_BG_COLOR)
 
-    pitch = Pitch(pitch_type='statsbomb', pitch_color='grass', line_color='#c7d5cc', stripe=True)
+    pitch = Pitch(pitch_type='statsbomb', pitch_color=PITCH_COLOR, line_color=LINE_COLOR)
     pitch.draw(ax=ax)
     plt.gca().invert_yaxis()
 
@@ -203,22 +227,25 @@ def dribbles(events, h, w, match_id):
             x_w.append(shot['location'][0])
             y_w.append(shot['location'][1])
     
-    plt.scatter(x_h, y_h, s=100, c=HOME_COLOR, alpha=.7, label=h)
-    plt.scatter(x_w, y_w, s=100, c=AWAY_COLOR, alpha=.7, label=w)
+    plt.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+    plt.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
     
-    legend = plt.legend(loc="upper left")
+    legend = plt.legend(loc="upper left", framealpha=0.8)
     legend.get_frame().set_facecolor(FIG_BG_COLOR)
     
     total_shots = len(events['dribbles'])
     fig_text(s=f'Total Dribbles: {total_shots}',
-             x=.49, y=.67, fontsize=14, color=TEXT_COLOR)
-    fig.text(.22, .14, f'@ahmedtarek / Github', 
-             fontstyle='italic', fontsize=12, color=TEXT_COLOR)
+             x=.49, y=.67, fontsize=FONT_SIZE_LG, color=TEXT_COLOR, fontfamily=FONT)
+    # Moved credit to bottom left with smaller font
+    fig.text(.02, .02, f'@ahmedtarek / Github', 
+             fontstyle='italic', fontsize=FONT_SIZE_SM-2, fontfamily=FONT, color=TEXT_COLOR)
     
     plt.tight_layout()
     plt.savefig(f'graphs/dribbles-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/dribbles-{match_id}.png')
 
+# Pass map functions (commented out but kept in code)
+'''
 def home_team_passes(events, home_team, match_id):
     x_h = []
     y_h = []
@@ -231,7 +258,7 @@ def home_team_passes(events, home_team, match_id):
     pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
     bins = (6, 4)
 
-    fig, ax = pitch.draw(figsize=(10, 6.5))  # New size
+    fig, ax = pitch.draw(figsize=(10, 6.5))
     fig.set_facecolor(FIG_BG_COLOR)
     
     fig_text(s=f'{home_team} Passes: {len(x_h)}',
@@ -245,6 +272,7 @@ def home_team_passes(events, home_team, match_id):
     plt.tight_layout()
     plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/{home_team}passes-{match_id}.png')
+'''
 
 def pass_network(events, team_name, match_id, color):
     try:
@@ -289,7 +317,7 @@ def pass_network(events, team_name, match_id, color):
         
         pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
                      line_color="black", linewidth=1)
-        fig, ax = pitch.draw(figsize=(10, 6.5))  # New size
+        fig, ax = pitch.draw(figsize=(10, 6.5))
         fig.set_facecolor(FIG_BG_COLOR)
         
         heatmap_bins = (6, 4)
@@ -347,8 +375,9 @@ def pass_network(events, team_name, match_id, color):
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
         
         ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
-        fig.text(0.1, 0.02, '@ahmedtarek26 / Github', 
-                fontstyle='italic', fontsize=12, color='black')
+        # Moved credit to bottom left with smaller font
+        fig.text(.02, .02, '@ahmedtarek26 / Github', 
+                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color='black')
         
         plt.tight_layout()
         plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
@@ -404,84 +433,101 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-st.title('⚽ Discover the Competition Like Coaches 😉')
-competition = st.selectbox('Choose the competition', (com_dict.keys()))
+st.title('⚽ Football Match Analysis')
 
-season = st.selectbox('Choose the season', (season_dict.keys()))
-data = sb.matches(competition_id=com_dict[competition], season_id=season_dict[season])
-matches_names, matches_idx, matches_id = matches_id(data)
-match = st.selectbox('Select the match', matches_names)
-sub_2 = st.button('Analyze Match')
-
-if sub_2:
-    home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
-        data, matches_idx[match])
-    home_lineup, away_lineup = lineups(home_team, away_team, data=sb.lineups(match_id=matches_id[match]))
+# Competition selection
+try:
+    competition = st.selectbox('Choose the competition', com_dict.keys())
+    season = st.selectbox('Choose the season', season_dict.keys())
     
-    # Match header
-    st.markdown(f"""
-        <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};padding:1.5rem;border-radius:12px;margin-bottom:2rem;">
-            <div style="display:flex;justify-content:space-between;align-items:center;color:white;">
-                <div style="text-align:center;flex:1;">
-                    <h2 style="color:white;margin-bottom:0;">{home_team}</h2>
-                    <h1 style="color:white;margin-top:0;">{home_score}</h1>
-                </div>
-                <div style="text-align:center;flex:1;">
-                    <h3 style="color:white;">vs</h3>
-                    <p style="color:white;margin-bottom:0;">{comp_stats}</p>
-                    <p style="color:white;margin-top:0;">{stadium}</p>
-                </div>
-                <div style="text-align:center;flex:1;">
-                    <h2 style="color:white;margin-bottom:0;">{away_team}</h2>
-                    <h1 style="color:white;margin-top:0;">{away_score}</h1>
+    # Load matches data
+    data = sb.matches(competition_id=com_dict[competition], season_id=season_dict[season])
+    matches_names, matches_idx, matches_id_dict = matches_id(data)
+    match = st.selectbox('Select the match', matches_names)
+    
+    if st.button('Analyze Match'):
+        home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
+            data, matches_idx[match])
+        
+        if None in [home_team, away_team]:
+            st.error("Could not load match data")
+            st.stop()
+        
+        match_id = matches_id_dict[match]
+        
+        # Load lineups
+        home_lineup, away_lineup = lineups(home_team, away_team, sb.lineups(match_id=match_id))
+        
+        # Match header
+        st.markdown(f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
+                    padding:1.5rem;border-radius:12px;margin-bottom:2rem;color:white;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="text-align:center;flex:1;">
+                        <h2 style="color:white;margin-bottom:0;">{home_team}</h2>
+                        <h1 style="color:white;margin-top:0;">{home_score}</h1>
+                    </div>
+                    <div style="text-align:center;flex:1;">
+                        <h3 style="color:white;">vs</h3>
+                        <p style="color:white;margin-bottom:0;">{comp_stats}</p>
+                        <p style="color:white;margin-top:0;">🏟️ {stadium}</p>
+                    </div>
+                    <div style="text-align:center;flex:1;">
+                        <h2 style="color:white;margin-bottom:0;">{away_team}</h2>
+                        <h1 style="color:white;margin-top:0;">{away_score}</h1>
+                    </div>
                 </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Team lineups in columns
-    col1, col2, col3 = st.columns([2, 1, 2])
-    
-    with col1:
-        st.subheader(f'{home_team} Lineup')
-        st.markdown(f"**Manager:** {home_manager}")
-        for player in home_lineup:
-            st.markdown(f"- {player}")
-    
-    with col3:
-        st.subheader(f'{away_team} Lineup')
-        st.markdown(f"**Manager:** {away_manager}")
-        for player in away_lineup:
-            st.markdown(f"- {player}")
+        """, unsafe_allow_html=True)
+        
+        # Lineups
+        col1, col2, col3 = st.columns([2, 1, 2])
+        
+        with col1:
+            with st.container():
+                st.subheader(f'👥 {home_team} Lineup')
+                st.markdown(f"**👨‍💼 Manager:** {home_manager}")
+                for player in home_lineup:
+                    st.markdown(f"- ⚽ {player}")
+        
+        with col3:
+            with st.container():
+                st.subheader(f'👥 {away_team} Lineup')
+                st.markdown(f"**👨‍💼 Manager:** {away_manager}")
+                for player in away_lineup:
+                    st.markdown(f"- ⚽ {player}")
 
-    events = sb.events(match_id=matches_id[match], split=True)
-    
-    # Visualization sections
-    st.markdown("---")
-    st.header("📊 Match Visualizations")
-    
-    tab1, tab2 = st.tabs(["⚽ Shots & Goals", "🔄 Passing"])
-    
-    with tab1:
-        if 'shots' in events:
-            st.subheader(f'🎯 {home_team} shots vs {away_team} shots')
-            shots_goal(events['shots'], home_team, away_team, match_id)
+        # Load events
+        events = sb.events(match_id=match_id, split=True)
+        
+        # Visualizations
+        st.markdown("---")
+        st.header("📊 Match Visualizations")
+        
+        tab1, tab2 = st.tabs(["⚽ Shots & Goals", "🔄 Passing"])
+        
+        with tab1:
+            if 'shots' in events:
+                st.subheader(f'🎯 {home_team} shots vs {away_team} shots')
+                shots_goal(events['shots'], home_team, away_team, match_id)
 
-            st.subheader('🥅 Goals Analysis')
-            goals(events['shots'], home_team, away_team, match_id)
-        else:
-            st.warning("No shots data available for this match")
+                st.subheader('🥅 Goals Analysis')
+                goals(events['shots'], home_team, away_team, match_id)
+            else:
+                st.warning("No shots data available for this match")
 
-    with tab2:
-        st.subheader(f'🔴 {home_team} Pass Network')
-        pass_network(events, home_team, match_id, HOME_COLOR)
+        with tab2:
+            st.subheader(f'🔴 {home_team} Pass Network')
+            pass_network(events, home_team, match_id, HOME_COLOR)
 
-        st.subheader(f'🔵 {away_team} Pass Network')
-        pass_network(events, away_team, match_id, AWAY_COLOR)
+            st.subheader(f'🔵 {away_team} Pass Network')
+            pass_network(events, away_team, match_id, AWAY_COLOR)
 
-        if 'dribbles' in events:
-            st.subheader('🏃‍♂️ Dribbles')
-            dribbles(events, home_team, away_team, match_id)
-        else:
-            st.warning("No dribbles data available for this match")
+            if 'dribbles' in events:
+                st.subheader('🏃‍♂️ Dribbles')
+                dribbles(events, home_team, away_team, match_id)
+            else:
+                st.warning("No dribbles data available for this match")
 
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
