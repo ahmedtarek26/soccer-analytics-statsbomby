@@ -485,5 +485,3 @@ if sub_2:
         else:
             st.warning("No dribbles data available for this match")
 
-except Exception as e:
-    st.error(f"An error occurred: {str(e)}")
