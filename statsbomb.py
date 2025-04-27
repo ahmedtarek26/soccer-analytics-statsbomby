@@ -276,7 +276,7 @@ def away_team_passes(events, away_team, match_id):
 
 def pass_network(events, team_name, match_id, color="#BF616A"):
     """
-    Create a pass network visualization for a team in Streamlit.
+    Create a pass network visualization with heatmap overlay for a team in Streamlit.
     
     Parameters:
     - events: Dictionary containing match events
@@ -344,6 +344,13 @@ def pass_network(events, team_name, match_id, color="#BF616A"):
         fig, ax = pitch.draw(figsize=(12, 8))
         fig.set_facecolor("white")
         
+        # Add heatmap (light color, low alpha)
+        heatmap_bins = (6, 4)
+        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
+                                        statistic='count', bins=heatmap_bins)
+        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == "#BF616A" else 'Reds', 
+                     alpha=0.3, zorder=0.5)
+        
         # Draw connections
         pitch.lines(
             pass_connections.x,
@@ -365,7 +372,8 @@ def pass_network(events, team_name, match_id, color="#BF616A"):
             edgecolors="black",
             linewidth=0.5,
             alpha=1,
-            ax=ax
+            ax=ax,
+            zorder=2
         )
         
         # Add inner circles
@@ -377,7 +385,8 @@ def pass_network(events, team_name, match_id, color="#BF616A"):
             edgecolors="black",
             linewidth=0.5,
             alpha=1,
-            ax=ax
+            ax=ax,
+            zorder=3
         )
         
         # Add player names
@@ -389,7 +398,8 @@ def pass_network(events, team_name, match_id, color="#BF616A"):
                 va="center",
                 ha="center",
                 size=10,
-                weight="bold"
+                weight="bold",
+                zorder=4
             )
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
         
@@ -405,7 +415,7 @@ def pass_network(events, team_name, match_id, color="#BF616A"):
         
     except Exception as e:
         st.error(f"Error creating pass network for {team_name}: {str(e)}")
-
+        
 
 ## foul committeds
 def foul_committed(events, h, w, match_id):
