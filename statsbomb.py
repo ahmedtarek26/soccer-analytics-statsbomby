@@ -271,6 +271,138 @@ def away_team_passes(events, away_team, match_id):
     plt.savefig(f'graphs/{away_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/{away_team}passes-{match_id}.png')
 
+def pass_network(events, team_name, match_id, color="#BF616A"):
+    """
+    Create a pass network visualization for a team in Streamlit.
+    
+    Parameters:
+    - events: Dictionary containing match events
+    - team_name: Name of the team to analyze
+    - match_id: Match ID for saving the image
+    - color: Team color for visualization
+    """
+    try:
+        # Verify we have passes data
+        if 'passes' not in events:
+            st.warning(f"No passes data found for {team_name}")
+            return
+            
+        passes = events['passes']
+        
+        # Filter for team
+        team_passes = passes[passes['team'] == team_name]
+        if len(team_passes) == 0:
+            st.warning(f"No passes found for {team_name}")
+            return
+            
+        # Filter successful passes
+        successful_passes = team_passes[team_passes['pass_outcome'].isna()].copy()
+        if len(successful_passes) == 0:
+            st.warning(f"No successful passes found for {team_name}")
+            return
+            
+        # Extract coordinates
+        locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
+        successful_passes[['x', 'y']] = locations
+        
+        # Calculate average positions
+        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
+        
+        # Calculate pass counts
+        pass_counts = successful_passes['player'].value_counts()
+        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
+        
+        # Scale node sizes (300-1500 range)
+        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
+        
+        # Calculate pass connections
+        pass_connections = successful_passes.groupby(
+            ['player', 'pass_recipient']).size().reset_index(name='count')
+        
+        # Merge positions
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='player', 
+            right_index=True
+        )
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='pass_recipient', 
+            right_index=True,
+            suffixes=['', '_end']
+        )
+        
+        # Scale connection widths (1-5 range)
+        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
+        
+        # Setup pitch
+        pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
+                     line_color="black", linewidth=1)
+        fig, ax = pitch.draw(figsize=(12, 8))
+        fig.set_facecolor("white")
+        
+        # Draw connections
+        pitch.lines(
+            pass_connections.x,
+            pass_connections.y,
+            pass_connections.x_end,
+            pass_connections.y_end,
+            lw=pass_connections.width,
+            color=color,
+            zorder=1,
+            ax=ax
+        )
+        
+        # Draw nodes
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size,
+            color=color,
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax
+        )
+        
+        # Add inner circles
+        pitch.scatter(
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size/2,
+            color="white",
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax
+        )
+        
+        # Add player names
+        for index, row in avg_locations.iterrows():
+            text = ax.text(
+                row.x, row.y,
+                index.split()[-1],
+                color="black",
+                va="center",
+                ha="center",
+                size=10,
+                weight="bold"
+            )
+            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
+        
+        # Add title and credit
+        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
+        fig.text(0.1, 0.02, '@ahmedtarek26 / Github', 
+                fontstyle='italic', fontsize=12, color='black')
+        
+        # Save and display in Streamlit
+        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
+                   dpi=300, bbox_inches='tight', facecolor='white')
+        st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
+        
+    except Exception as e:
+        st.error(f"Error creating pass network for {team_name}: {str(e)}")
+
 
 ## foul committeds
 def foul_committed(events, h, w, match_id):
@@ -645,6 +777,14 @@ if sub_2:
     home_team_passes(events, home_team, matches_id[match])
     st.subheader(f'{away_team} pass map')
     home_team_passes(events, away_team, matches_id[match])
+
+
+    st.subheader(f'{home_team} Pass Network')
+    pass_network(events, home_team, matches_id[match], color="#BF616A")  # Red color
+
+    st.subheader(f'{away_team} Pass Network')
+    pass_network(events, away_team, matches_id[match], color="#5E81AC")  # Blue color
+
 
     st.subheader('Foul Committeds in the match')
     foul_committed(events, home_team, away_team, matches_id[match])
