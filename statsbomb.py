@@ -5,15 +5,17 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 from statsbombpy import sb
-from mplsoccer.pitch import Pitch, VerticalPitch
+from mplsoccer.pitch import Pitch
 from highlight_text import fig_text
 import plotly.express as px
-from dash import dcc
-from mplsoccer import FontManager
+import os
 import matplotlib.patheffects as path_effects
 
+# Ensure graphs directory exists
+os.makedirs('graphs', exist_ok=True)
+
 # Theme configuration
-DARK_MODE = True  # Set to False for light mode
+DARK_MODE = st.sidebar.checkbox("Dark Mode", value=True)
 
 if DARK_MODE:
     # Dark theme colors
@@ -458,50 +460,30 @@ if sub_2:
     st.markdown("---")
     st.header("📊 Match Visualizations")
     
-    tab1, tab2, tab3, tab4 = st.tabs(["Shots & Goals", "Passing", "Defensive Actions", "Ball Progression"])
+    tab1, tab2 = st.tabs(["⚽ Shots & Goals", "🔄 Passing"])
     
     with tab1:
-        st.subheader(f'{home_team} shots vs {away_team} shots')
-        shots_goal(events['shots'], home_team, away_team, matches_id[match])
+        if 'shots' in events:
+            st.subheader(f'🎯 {home_team} shots vs {away_team} shots')
+            shots_goal(events['shots'], home_team, away_team, match_id)
 
-        st.subheader('Goals Analysis')
-        goals(events['shots'], home_team, away_team, matches_id[match])
+            st.subheader('🥅 Goals Analysis')
+            goals(events['shots'], home_team, away_team, match_id)
+        else:
+            st.warning("No shots data available for this match")
 
     with tab2:
-        st.subheader(f'{home_team} Pass Network')
-        pass_network(events, home_team, matches_id[match], color="#BF616A")  # Red color
+        st.subheader(f'🔴 {home_team} Pass Network')
+        pass_network(events, home_team, match_id, HOME_COLOR)
 
-        st.subheader(f'{away_team} Pass Network')
-        pass_network(events, away_team, matches_id[match], color="#5E81AC")  # Blue color
+        st.subheader(f'🔵 {away_team} Pass Network')
+        pass_network(events, away_team, match_id, AWAY_COLOR)
 
-        st.subheader(f'{home_team} pass map')
-        home_team_passes(events, home_team, matches_id[match])
-        
-        st.subheader(f'{away_team} pass map')
-        home_team_passes(events, away_team, matches_id[match])
+        if 'dribbles' in events:
+            st.subheader('🏃‍♂️ Dribbles')
+            dribbles(events, home_team, away_team, match_id)
+        else:
+            st.warning("No dribbles data available for this match")
 
-    with tab3:
-        st.subheader('Defensive Actions')
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader('Foul Committeds')
-            foul_committed(events, home_team, away_team, matches_id[match])
-            st.plotly_chart(px.bar(events['foul_committeds'], x=['player', 'position'], color='position',
-                                 color_discrete_sequence=[HOME_COLOR, AWAY_COLOR]))
-
-        with col2:
-            st.subheader('Foul Wons')
-            foul_won(events, home_team, away_team, matches_id[match])
-            st.plotly_chart(px.bar(events['foul_wons'], x=['player', 'position'], color='position',
-                                 color_discrete_sequence=[HOME_COLOR, AWAY_COLOR]))
-
-    with tab4:
-        st.subheader('Dribbles')
-        dribbles(events, home_team, away_team, matches_id[match])
-
-        st.subheader('Carrys')
-        st.write('A carry is defined as any movement of the ball by a player which is greater than five metres from where they received the ball.')
-        for i in range(len(events['carrys']['player'].unique())):
-            st.write(f"#### {events['carrys']['player'].unique()[i]} ")
-            carrys(events, events['carrys']['player'].unique()[i], matches_id[match])
+except Exception as e:
+    st.error(f"An error occurred: {str(e)}")
