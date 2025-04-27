@@ -248,7 +248,35 @@ def dribbles(events, h, w, match_id):
     plt.savefig(f'graphs/dribbles-{match_id}.png', dpi=300, bbox_inches='tight')
     st.image(f'graphs/dribbles-{match_id}.png')
 
+# Pass map functions (commented out but kept in code)
+'''
+def home_team_passes(events, home_team, match_id):
+    x_h = []
+    y_h = []
 
+    for i, shot in events['passes'].iterrows():
+        if events['passes']['possession_team'][i] == home_team:
+            x_h.append(shot['location'][0])
+            y_h.append(shot['location'][1])
+
+    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
+    bins = (6, 4)
+
+    fig, ax = pitch.draw(figsize=(10, 6.5))
+    fig.set_facecolor(FIG_BG_COLOR)
+    
+    fig_text(s=f'{home_team} Passes: {len(x_h)}',
+             x=.49, y=.67, fontsize=14, color='yellow')
+    fig.text(.22, .14, f'@ahmedtarek26 / Github', 
+             fontstyle='italic', fontsize=12, color='yellow')
+
+    bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
+    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
+    
+    plt.tight_layout()
+    plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+    st.image(f'graphs/{home_team}passes-{match_id}.png')
+'''
 
 def pass_network(events, team_name, match_id, color):
     try:
