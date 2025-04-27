@@ -251,31 +251,48 @@ def dribbles(events, h, w, match_id):
 # Pass map functions (commented out but kept in code)
 '''
 def home_team_passes(events, home_team, match_id):
-    x_h = []
-    y_h = []
+    try:
+        x_h = []
+        y_h = []
 
-    for i, shot in events['passes'].iterrows():
-        if events['passes']['possession_team'][i] == home_team:
-            x_h.append(shot['location'][0])
-            y_h.append(shot['location'][1])
+        if 'passes' not in events:
+            st.warning(f"No passes data found for {home_team}")
+            return
 
-    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
-    bins = (6, 4)
+        for i, shot in events['passes'].iterrows():
+            if events['passes']['possession_team'][i] == home_team:
+                try:
+                    x_h.append(shot['location'][0])
+                    y_h.append(shot['location'][1])
+                except (KeyError, TypeError):
+                    continue
 
-    fig, ax = pitch.draw(figsize=(10, 6.5))
-    fig.set_facecolor(FIG_BG_COLOR)
-    
-    fig_text(s=f'{home_team} Passes: {len(x_h)}',
-             x=.49, y=.67, fontsize=14, color='yellow')
-    fig.text(.22, .14, f'@ahmedtarek26 / Github', 
-             fontstyle='italic', fontsize=12, color='yellow')
+        if not x_h:  # Check if we have any passes
+            st.warning(f"No passes found for {home_team}")
+            return
 
-    bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
-    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
-    
-    plt.tight_layout()
-    plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
-    st.image(f'graphs/{home_team}passes-{match_id}.png')
+        pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+        bins = (6, 4)
+
+        fig, ax = pitch.draw(figsize=(10, 6.5))
+        fig.set_facecolor(FIG_BG_COLOR)
+
+        fig_text(s=f'{home_team} Passes: {len(x_h)}',
+                x=.49, y=.67, fontsize=FONT_SIZE_LG, color=TEXT_COLOR, fontfamily=FONT)
+        
+        # Moved credit to bottom left with smaller font
+        fig.text(.02, .02, '@ahmedtarek26 / Github', 
+                fontstyle='italic', fontsize=FONT_SIZE_SM-2, fontfamily=FONT, color=TEXT_COLOR)
+
+        bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
+        hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
+
+        plt.tight_layout()
+        plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+        st.image(f'graphs/{home_team}passes-{match_id}.png')
+        
+    except Exception as e:
+        st.error(f"Error creating pass map: {str(e)}")
 '''
 
 def pass_network(events, team_name, match_id, color):
