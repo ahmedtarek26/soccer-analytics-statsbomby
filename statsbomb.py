@@ -48,8 +48,44 @@ FONT_SIZE_XL = 16
 # Ensure graphs directory exists
 os.makedirs('graphs', exist_ok=True)
 
-# Helper functions
+# --------------------------
+# DATA PROCESSING FUNCTIONS
+# --------------------------
+
+def matches_id(data):
+    """Extract match information from data"""
+    match_id = []
+    match_name = []
+    match_index = []
+    for i in range(len(data)):
+        match_index.append(i)
+        match_id.append(data['match_id'][i])
+        match_name.append(f"{data['home_team'][i]} vs {data['away_team'][i]} {data['competition_stage'][i]}")
+    return match_name, dict(zip(match_name, match_index)), dict(zip(match_name, match_id))
+
+def match_data(data, match_index):
+    """Extract match details for a specific match"""
+    return (
+        data['home_team'][match_index],
+        data['away_team'][match_index],
+        data['home_score'][match_index],
+        data['away_score'][match_index],
+        data['stadium'][match_index],
+        data['home_managers'][match_index],
+        data['away_managers'][match_index],
+        data['competition_stage'][match_index]
+    )
+
+def lineups(h, w, data):
+    """Get lineup data for both teams"""
+    return data[h]['player_name'].values, data[w]['player_name'].values
+
+# --------------------------
+# VISUALIZATION FUNCTIONS
+# --------------------------
+
 def create_pitch_figure(title, figsize=(10, 6.5)):
+    """Create a standard pitch figure with consistent styling"""
     fig, ax = plt.subplots(figsize=figsize, facecolor=FIG_BG_COLOR)
     pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
     pitch.draw(ax=ax)
@@ -62,6 +98,7 @@ def create_pitch_figure(title, figsize=(10, 6.5)):
     return fig, ax
 
 def save_and_display(fig, filename):
+    """Save figure and display in Streamlit"""
     fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
             fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
             color=TEXT_COLOR, fontfamily=FONT)
@@ -89,8 +126,8 @@ def plot_player_actions(events, player_name, action_type, color, ax):
     else:
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
 
-# Visualization functions with improved styling
 def shots_goal(shots, h, w, match_id):
+    """Visualize shots on goal"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -139,6 +176,7 @@ def shots_goal(shots, h, w, match_id):
         st.error(f"Shots visualization error: {str(e)}")
 
 def goals(shots, h, w, match_id):
+    """Visualize goals with xG"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -179,6 +217,7 @@ def goals(shots, h, w, match_id):
         st.error(f"Goals visualization error: {str(e)}")
 
 def defensive_actions(events, h, w, match_id, action_type):
+    """Visualize defensive actions"""
     try:
         title_map = {
             'foul_committeds': 'Fouls Committed',
@@ -254,7 +293,10 @@ def player_actions_grid(events, team_name, players, action_type, color):
     except Exception as e:
         st.error(f"Error creating player actions grid: {str(e)}")
 
-# Main app function
+# --------------------------
+# MAIN APP FUNCTION
+# --------------------------
+
 def main():
     st.title('⚽ Football Match Analysis')
     
