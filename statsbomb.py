@@ -311,16 +311,6 @@ def main():
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-# Commented pass map functions (keep in code but not called)
-"""
-def home_team_passes(events, home_team, match_id):
-    # Existing implementation here
-    pass
-
-def away_team_passes(events, away_team, match_id):
-    # Existing implementation here
-    pass
-"""
 
 if __name__ == "__main__":
     main()
