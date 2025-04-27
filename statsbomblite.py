@@ -312,6 +312,3 @@ def analyze_match(data, match_idx, match_id):
             pass_network(events, away_team, match_id, color=PALETTE['secondary'])
     
     # ... (other tabs and visualizations)
-
-if __name__ == "__main__":
-    main()
