@@ -566,48 +566,48 @@ def main():
         st.error(f"An error occurred: {str(e)}")
 
 # Commented pass map functions (keep in code but not called)
-"""
-def home_team_passes(events, home_team, match_id):
-    x_h = []
-    y_h = []
+# """
+# def home_team_passes(events, home_team, match_id):
+#     x_h = []
+#     y_h = []
 
-    for i, shot in events['passes'].iterrows():
-        if events['passes']['possession_team'][i] == home_team:
-            x_h.append(shot['location'][0])
-            y_h.append(shot['location'][1])
+#     for i, shot in events['passes'].iterrows():
+#         if events['passes']['possession_team'][i] == home_team:
+#             x_h.append(shot['location'][0])
+#             y_h.append(shot['location'][1])
 
-    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
-    bins = (6, 4)
+#     pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
+#     bins = (6, 4)
 
-    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
-    fig_text(s=f'{home_team} Passes: {len(x_h)}',
-             x=.49, y=.67, fontsize=14, color='yellow')
-    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
-    bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
-    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
-    plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
-    st.image(f'graphs/{home_team}passes-{match_id}.png')
+#     fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+#     fig_text(s=f'{home_team} Passes: {len(x_h)}',
+#              x=.49, y=.67, fontsize=14, color='yellow')
+#     fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
+#     bs_heatmap = pitch.bin_statistic(x_h, y_h, statistic='count', bins=bins)
+#     hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues')
+#     plt.savefig(f'graphs/{home_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+#     st.image(f'graphs/{home_team}passes-{match_id}.png')
 
-def away_team_passes(events, away_team, match_id):
-    x_w = []
-    y_w = []
-    for i, shot in events['dribbles'].iterrows():
-        if events['dribbles']['possession_team'][i] == away_team:
-            x_w.append(shot['location'][0])
-            y_w.append(shot['location'][1])
+# def away_team_passes(events, away_team, match_id):
+#     x_w = []
+#     y_w = []
+#     for i, shot in events['dribbles'].iterrows():
+#         if events['dribbles']['possession_team'][i] == away_team:
+#             x_w.append(shot['location'][0])
+#             y_w.append(shot['location'][1])
 
-    pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
-    bins = (6, 4)
-    fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
-    fig_text(s=f'{away_team} Passes: {len(x_w)}',
-             x=.49, y=.67, fontsize=14, color='yellow')
-    fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
-    fig.set_facecolor('#22312b')
-    bs_heatmap = pitch.bin_statistic(x_w, y_w, statistic='count', bins=bins)
-    hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Reds')
-    plt.savefig(f'graphs/{away_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
-    st.image(f'graphs/{away_team}passes-{match_id}.png')
-"""
+#     pitch = Pitch(pitch_type='statsbomb', line_zorder=2, line_color='gray', pitch_color='#22312b')
+#     bins = (6, 4)
+#     fig, ax = pitch.draw(figsize=(16, 11), constrained_layout=True, tight_layout=False)
+#     fig_text(s=f'{away_team} Passes: {len(x_w)}',
+#              x=.49, y=.67, fontsize=14, color='yellow')
+#     fig.text(.22, .14, f'@ahmedtarek26 / Github', fontstyle='italic', fontsize=12, color='yellow')
+#     fig.set_facecolor('#22312b')
+#     bs_heatmap = pitch.bin_statistic(x_w, y_w, statistic='count', bins=bins)
+#     hm = pitch.heatmap(bs_heatmap, ax=ax, cmap='Reds')
+#     plt.savefig(f'graphs/{away_team}passes-{match_id}.png', dpi=300, bbox_inches='tight')
+#     st.image(f'graphs/{away_team}passes-{match_id}.png')
+# """
 
 if __name__ == "__main__":
     main()
