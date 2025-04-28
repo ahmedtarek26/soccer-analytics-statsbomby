@@ -15,6 +15,12 @@ from matplotlib.patches import FancyArrowPatch
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
 
+# Initialize session state
+if 'analyzed' not in st.session_state:
+    st.session_state.analyzed = False
+if 'match_data' not in st.session_state:
+    st.session_state.match_data = None
+
 # Theme configuration - Light mode as default
 DARK_MODE = st.sidebar.checkbox("Dark Mode", value=False)
 
@@ -537,14 +543,48 @@ def main():
         matches_names, matches_idx, matches_id_dict = matches_id(data)
         match = st.selectbox('Select the match', matches_names)
         
-        if st.button('Analyze Match'):
-            home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
-                data, matches_idx[match])
-            
-            match_id = matches_id_dict[match]
-            lineup_data = sb.lineups(match_id=match_id)
-            home_lineup, away_lineup = lineups(home_team, away_team, lineup_data)
-            events = sb.events(match_id=match_id, split=True)
+        if st.button('Analyze Match') or st.session_state.analyzed:
+            st.session_state.analyzed = True
+            if st.session_state.match_data is None:
+                # Load and process the data only if it's not already in session state
+                home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
+                    data, matches_idx[match])
+                
+                match_id = matches_id_dict[match]
+                lineup_data = sb.lineups(match_id=match_id)
+                home_lineup, away_lineup = lineups(home_team, away_team, lineup_data)
+                events = sb.events(match_id=match_id, split=True)
+                
+                # Store all the necessary data in session state
+                st.session_state.match_data = {
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'home_score': home_score,
+                    'away_score': away_score,
+                    'stadium': stadium,
+                    'home_manager': home_manager,
+                    'away_manager': away_manager,
+                    'comp_stats': comp_stats,
+                    'match_id': match_id,
+                    'home_lineup': home_lineup,
+                    'away_lineup': away_lineup,
+                    'events': events
+                }
+            else:
+                # Retrieve data from session state
+                match_data = st.session_state.match_data
+                home_team = match_data['home_team']
+                away_team = match_data['away_team']
+                home_score = match_data['home_score']
+                away_score = match_data['away_score']
+                stadium = match_data['stadium']
+                home_manager = match_data['home_manager']
+                away_manager = match_data['away_manager']
+                comp_stats = match_data['comp_stats']
+                match_id = match_data['match_id']
+                home_lineup = match_data['home_lineup']
+                away_lineup = match_data['away_lineup']
+                events = match_data['events']
             
             # Match header
             st.markdown(f"""
@@ -654,6 +694,12 @@ def main():
                                         color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
                                         title="Fouls Committed", 
                                         template=PLOTLY_TEMPLATE))
+
+            # Add reset button
+            if st.button('Analyze New Match'):
+                st.session_state.analyzed = False
+                st.session_state.match_data = None
+                st.experimental_rerun()
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
