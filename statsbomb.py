@@ -288,9 +288,7 @@ def goals(shots, h, w, match_id):
             text = ax.text(plot_x, plot_y + 5, info_text, 
                           fontsize=FONT_SIZE_MD,
                           color=color,
-                          ha='center', va='bottom', 
-                          fontfamily=FONT_BOLD,
-                          weight='bold')
+                          ha='center', va='bottom')
             text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
         save_and_display(fig, f'goals-{match_id}.png')
