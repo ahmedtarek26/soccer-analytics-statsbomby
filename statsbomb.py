@@ -126,7 +126,7 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         y = player_events['location'].apply(lambda loc: loc[1])
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
 
-def plot_player_xg(shots, player_name, team_name, competition_info):
+def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
     """
     Creates an Opta-style xG visualization
     """
@@ -153,9 +153,9 @@ def plot_player_xg(shots, player_name, team_name, competition_info):
         xg_bar = ax.barh([''], [xg], height=bar_height, color=XG_BAR_COLOR, alpha=0.4)
 
         # Add value labels inside bars
-        ax.text(goals/2, 0, f"{goals} goals", 
-               ha='center', va='center', color='white', fontweight='bold')
-        ax.text(xg/2, 0, f"{xg} xG", 
+        ax.text(goals/2, 0, f"{goals}", 
+               ha='center', va='center', color='white', fontweight='bold', fontsize=12)
+        ax.text(xg/2, 0, "", 
                ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
 
         # Set x-axis limit
@@ -187,15 +187,12 @@ def plot_player_xg(shots, player_name, team_name, competition_info):
         ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
                color='#666666', linewidth=2, clip_on=False)
 
-        # Add title and subtitle
+        # Add title with team color
+        player_color = HOME_COLOR if team_name == home_team else AWAY_COLOR
         fig.text(0.05, 0.9, player_name, 
-                fontsize=14, fontweight='bold', ha='left')
+                fontsize=16, fontweight='bold', ha='left', color=player_color)
         fig.text(0.05, 0.82, f"{team_name} | {competition_info}", 
                 fontsize=11, color='#666666', ha='left')
-
-        # Add Opta Analyst logo/text
-        fig.text(0.85, 0.9, "Opta Analyst", 
-                fontsize=10, color='#666666', ha='right')
 
         st.pyplot(fig)
 
@@ -278,11 +275,17 @@ def goals(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color)
             ax.add_patch(shotCircle)
 
-            info_text = f"{shot['player'].split()[-1]}\n{shot['shot_body_part'].title()}\nxG: {shot['shot_statsbomb_xg']:.2f}"
+            # Updated player name text with foot notation
+            player_name = shot['player'].split()[-1]
+            body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
+            info_text = f"{player_name}\n{body_part}"
             text = ax.text(plot_x, plot_y + 5, info_text, 
-                          fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
-                          ha='center', va='bottom', fontfamily=FONT)
-            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
+                          fontsize=FONT_SIZE_MD,
+                          color=color,
+                          ha='center', va='bottom', 
+                          fontfamily=FONT_BOLD,
+                          weight='bold')
+            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
@@ -363,7 +366,11 @@ def player_actions_grid(events, team_name, players, action_type, color):
             st.warning(f"No players available for {team_name}")
             return
             
-        if action_type not in events or events[action_type].empty:
+        if action_type not in events:
+            st.warning(f"Action type '{action_type}' not found in event data")
+            return
+            
+        if events[action_type].empty:
             st.warning(f"No {action_type} data available for {team_name}")
             return
         
@@ -608,21 +615,6 @@ def main():
             
             with tab3:
                 st.subheader("Individual Player Actions")
-                
-                selected_player = st.selectbox("Select player to analyze", 
-                                            list(home_lineup) + list(away_lineup))
-                
-                # Determine player's team
-                player_team = home_team if selected_player in home_lineup else away_team
-                
-                # Show xG comparison
-                if 'shots' in events:
-                    plot_player_xg(
-                        shots=events['shots'],
-                        player_name=selected_player,
-                        team_name=player_team,
-                        competition_info=f"{competition} {season}"
-                    )
                 
                 action_type = st.selectbox("Select action type", 
                                         ['carrys', 'passes', 'shots', 'dribbles'])
