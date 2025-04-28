@@ -543,6 +543,7 @@ def main():
         matches_names, matches_idx, matches_id_dict = matches_id(data)
         match = st.selectbox('Select the match', matches_names)
         
+
         if st.button('Analyze Match') or st.session_state.analyzed:
             st.session_state.analyzed = True
             if st.session_state.match_data is None:
@@ -572,19 +573,19 @@ def main():
                 }
             else:
                 # Retrieve data from session state
-                match_data = st.session_state.match_data
-                home_team = match_data['home_team']
-                away_team = match_data['away_team']
-                home_score = match_data['home_score']
-                away_score = match_data['away_score']
-                stadium = match_data['stadium']
-                home_manager = match_data['home_manager']
-                away_manager = match_data['away_manager']
-                comp_stats = match_data['comp_stats']
-                match_id = match_data['match_id']
-                home_lineup = match_data['home_lineup']
-                away_lineup = match_data['away_lineup']
-                events = match_data['events']
+                match_data_dict = st.session_state.match_data  # Changed variable name here
+                home_team = match_data_dict['home_team']
+                away_team = match_data_dict['away_team']
+                home_score = match_data_dict['home_score']
+                away_score = match_data_dict['away_score']
+                stadium = match_data_dict['stadium']
+                home_manager = match_data_dict['home_manager']
+                away_manager = match_data_dict['away_manager']
+                comp_stats = match_data_dict['comp_stats']
+                match_id = match_data_dict['match_id']
+                home_lineup = match_data_dict['home_lineup']
+                away_lineup = match_data_dict['away_lineup']
+                events = match_data_dict['events']
             
             # Match header
             st.markdown(f"""
