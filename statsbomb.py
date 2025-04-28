@@ -318,7 +318,7 @@ def goals(shots, h, w, match_id):
         # Add colorbar for time
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.05)
         cbar.set_label('Minute Scored', color=TEXT_COLOR)
         cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR)
         plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=TEXT_COLOR)
