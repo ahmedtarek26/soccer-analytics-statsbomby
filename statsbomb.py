@@ -669,13 +669,23 @@ def main():
                 st.subheader("Match Statistics")
                 
                 if 'shots' in events:
-                    shots_df = events['shots'].groupby(['player', 'team']).size().reset_index(name='count')
-                    st.plotly_chart(px.bar(shots_df, 
-                                        y='player', x='count', 
-                                        color='team',
-                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                                        title="Shots by Player", 
-                                        template=PLOTLY_TEMPLATE))
+                    shots_df = events['shots'].copy()
+                    # Extract last names
+                    shots_df['player_lastname'] = shots_df['player'].apply(lambda name: name.split()[-1])
+                    
+                    # Group by last name and team
+                    shots_summary = shots_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+
+                    st.plotly_chart(px.bar(
+                        shots_summary,
+                        y='player_lastname', 
+                        x='count', 
+                        color='team',
+                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                        title="Shots by Player (Last Names)", 
+                        template=PLOTLY_TEMPLATE
+                    ))
+
                 
                 if 'passes' in events:
                     passes_df = events['passes'].groupby(['player', 'team']).size().reset_index(name='count')
