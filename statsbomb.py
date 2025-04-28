@@ -10,12 +10,13 @@ from highlight_text import fig_text
 import plotly.express as px
 import os
 import matplotlib.patheffects as path_effects
+from matplotlib.patches import FancyArrowPatch
 
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
 
-# Theme configuration
-DARK_MODE = st.sidebar.checkbox("Dark Mode", value=True)
+# Theme configuration - Light mode as default
+DARK_MODE = st.sidebar.checkbox("Dark Mode", value=False)
 
 if DARK_MODE:
     BG_COLOR = "#121212"
@@ -26,6 +27,7 @@ if DARK_MODE:
     AWAY_COLOR = "#64b5f6"
     FIG_BG_COLOR = "#121212"
     PLOTLY_TEMPLATE = "plotly_dark"
+    XG_BAR_COLOR = "#64b5f6"
 else:
     BG_COLOR = "#ffffff"
     PITCH_COLOR = "#f8f9fa"
@@ -35,6 +37,7 @@ else:
     AWAY_COLOR = "#003049"
     FIG_BG_COLOR = "#ffffff"
     PLOTLY_TEMPLATE = "plotly_white"
+    XG_BAR_COLOR = "#1e90ff"
 
 # Font settings
 FONT = 'DejaVu Sans'
@@ -102,19 +105,102 @@ def plot_player_actions(events, player_name, action_type, color, ax):
     if len(player_events) == 0:
         return
     
-    x = player_events['location'].apply(lambda loc: loc[0])
-    y = player_events['location'].apply(lambda loc: loc[1])
-    
     if action_type == 'carrys':
-        x_end = player_events['carry_end_location'].apply(lambda loc: loc[0])
-        y_end = player_events['carry_end_location'].apply(lambda loc: loc[1])
-        ax.scatter(x, y, s=50, color=color, alpha=0.7, marker='o')
-        ax.scatter(x_end, y_end, s=50, color=color, alpha=0.7, marker='x')
-        for i in range(len(x)):
-            ax.plot([x.iloc[i], x_end.iloc[i]], [y.iloc[i], y_end.iloc[i]], 
-                   color=color, alpha=0.5, linewidth=1)
+        # Add legend
+        start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
+        end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
+        ax.legend(handles=[start_marker, end_marker], 
+                 facecolor=FIG_BG_COLOR, 
+                 edgecolor=FIG_BG_COLOR)
+        
+        # Plot arrows instead of lines
+        for _, event in player_events.iterrows():
+            x_start, y_start = event['location']
+            x_end, y_end = event['carry_end_location']
+            dx, dy = x_end - x_start, y_end - y_start
+            ax.arrow(x_start, y_start, dx, dy, 
+                    head_width=1.5, head_length=2, 
+                    fc=color, ec=color, alpha=0.5)
     else:
+        x = player_events['location'].apply(lambda loc: loc[0])
+        y = player_events['location'].apply(lambda loc: loc[1])
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
+
+def plot_player_xg(shots, player_name, team_name, competition_info):
+    """
+    Creates an Opta-style xG visualization
+    """
+    try:
+        player_shots = shots[shots['player'] == player_name]
+        if player_shots.empty:
+            st.warning(f"No shots data for {player_name}")
+            return
+
+        # Calculate metrics
+        goals = player_shots[player_shots['shot_outcome'] == 'Goal'].shape[0]
+        xg = player_shots['shot_statsbomb_xg'].sum().round(1)
+        total_shots = player_shots.shape[0]
+        xg_per_shot = (xg / total_shots).round(2) if total_shots > 0 else 0
+        games = player_shots['match_id'].nunique()
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=(8, 3), facecolor='white')
+        fig.subplots_adjust(left=0.05, right=0.95, top=0.8, bottom=0.2)
+
+        # Main horizontal bars
+        bar_height = 0.4
+        goal_bar = ax.barh([''], [goals], height=bar_height, color=XG_BAR_COLOR, alpha=0.9)
+        xg_bar = ax.barh([''], [xg], height=bar_height, color=XG_BAR_COLOR, alpha=0.4)
+
+        # Add value labels inside bars
+        ax.text(goals/2, 0, f"{goals} goals", 
+               ha='center', va='center', color='white', fontweight='bold')
+        ax.text(xg/2, 0, f"{xg} xG", 
+               ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
+
+        # Set x-axis limit
+        max_value = max(goals, xg)
+        ax.set_xlim(0, max_value * 1.3)
+
+        # Remove spines and ticks
+        for spine in ['top', 'right', 'left', 'bottom']:
+            ax.spines[spine].set_visible(False)
+        ax.tick_params(axis='both', which='both', length=0)
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        # Add metrics on right side
+        metrics_text = (
+            f"{xg} xG\n"
+            f"{total_shots} shots\n"
+            f"{xg_per_shot} xG per shot\n"
+            f"{games} games"
+        )
+        ax.text(max_value * 1.15, 0, metrics_text, 
+               ha='left', va='center', linespacing=1.8)
+
+        # Add xG scale indicator
+        ax.text(0.02, -0.8, "Low xG", transform=ax.transAxes, 
+               fontsize=9, color='#666666')
+        ax.text(0.98, -0.8, "High xG", transform=ax.transAxes, 
+               fontsize=9, color='#666666', ha='right')
+        ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
+               color='#666666', linewidth=2, clip_on=False)
+
+        # Add title and subtitle
+        fig.text(0.05, 0.9, player_name, 
+                fontsize=14, fontweight='bold', ha='left')
+        fig.text(0.05, 0.82, f"{team_name} | {competition_info}", 
+                fontsize=11, color='#666666', ha='left')
+
+        # Add Opta Analyst logo/text
+        fig.text(0.85, 0.9, "Opta Analyst", 
+                fontsize=10, color='#666666', ha='right')
+
+        st.pyplot(fig)
+
+    except Exception as e:
+        st.error(f"Error creating xG visualization: {str(e)}")
 
 def shots_goal(shots, h, w, match_id):
     try:
@@ -273,7 +359,11 @@ def defensive_actions(events, h, w, match_id, action_type):
 
 def player_actions_grid(events, team_name, players, action_type, color):
     try:
-        if not players or action_type not in events:
+        if not players:
+            st.warning(f"No players available for {team_name}")
+            return
+            
+        if action_type not in events or events[action_type].empty:
             st.warning(f"No {action_type} data available for {team_name}")
             return
         
@@ -519,8 +609,23 @@ def main():
             with tab3:
                 st.subheader("Individual Player Actions")
                 
+                selected_player = st.selectbox("Select player to analyze", 
+                                            list(home_lineup) + list(away_lineup))
+                
+                # Determine player's team
+                player_team = home_team if selected_player in home_lineup else away_team
+                
+                # Show xG comparison
+                if 'shots' in events:
+                    plot_player_xg(
+                        shots=events['shots'],
+                        player_name=selected_player,
+                        team_name=player_team,
+                        competition_info=f"{competition} {season}"
+                    )
+                
                 action_type = st.selectbox("Select action type", 
-                                         ['carrys', 'passes', 'shots', 'dribbles'])
+                                        ['carrys', 'passes', 'shots', 'dribbles'])
                 
                 st.subheader(f"{home_team} Players")
                 player_actions_grid(events, home_team, list(home_lineup), action_type, HOME_COLOR)
@@ -532,19 +637,31 @@ def main():
                 st.subheader("Match Statistics")
                 
                 if 'shots' in events:
-                    st.plotly_chart(px.bar(events['shots'].groupby('player').size().reset_index(name='count'), 
-                                   x='player', y='count', color='team',
-                                   title="Shots by Player", template=PLOTLY_TEMPLATE))
+                    shots_df = events['shots'].groupby(['player', 'team']).size().reset_index(name='count')
+                    st.plotly_chart(px.bar(shots_df, 
+                                        x='player', y='count', 
+                                        color='team',
+                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                        title="Shots by Player", 
+                                        template=PLOTLY_TEMPLATE))
                 
                 if 'passes' in events:
-                    st.plotly_chart(px.bar(events['passes'].groupby('player').size().reset_index(name='count'), 
-                                   x='player', y='count', color='team',
-                                   title="Passes by Player", template=PLOTLY_TEMPLATE))
+                    passes_df = events['passes'].groupby(['player', 'team']).size().reset_index(name='count')
+                    st.plotly_chart(px.bar(passes_df, 
+                                        x='player', y='count', 
+                                        color='team',
+                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                        title="Passes by Player", 
+                                        template=PLOTLY_TEMPLATE))
                 
                 if 'foul_committeds' in events:
-                    st.plotly_chart(px.bar(events['foul_committeds'].groupby('player').size().reset_index(name='count'), 
-                                   x='player', y='count', color='team',
-                                   title="Fouls Committed", template=PLOTLY_TEMPLATE))
+                    fouls_df = events['foul_committeds'].groupby(['player', 'team']).size().reset_index(name='count')
+                    st.plotly_chart(px.bar(fouls_df, 
+                                        x='player', y='count', 
+                                        color='team',
+                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                        title="Fouls Committed", 
+                                        template=PLOTLY_TEMPLATE))
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
