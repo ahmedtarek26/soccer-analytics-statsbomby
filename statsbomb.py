@@ -34,6 +34,7 @@ if DARK_MODE:
     FIG_BG_COLOR = "#121212"
     PLOTLY_TEMPLATE = "plotly_dark"
     XG_BAR_COLOR = "#64b5f6"
+    SOFT_RED = "#ff9999"
 else:
     BG_COLOR = "#ffffff"
     PITCH_COLOR = "#f8f9fa"
@@ -44,6 +45,7 @@ else:
     FIG_BG_COLOR = "#ffffff"
     PLOTLY_TEMPLATE = "plotly_white"
     XG_BAR_COLOR = "#1e90ff"
+    SOFT_RED = "#ff6b6b"
 
 # Font settings
 FONT = 'DejaVu Sans'
@@ -112,14 +114,7 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         return
     
     if action_type == 'carrys':
-        # Add legend
-        start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
-        end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
-        ax.legend(handles=[start_marker, end_marker], 
-                 facecolor=FIG_BG_COLOR, 
-                 edgecolor=FIG_BG_COLOR)
-        
-        # Plot arrows instead of lines
+        # Removed legend as requested
         for _, event in player_events.iterrows():
             x_start, y_start = event['location']
             x_end, y_end = event['carry_end_location']
@@ -133,9 +128,6 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
 
 def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
-    """
-    Creates an Opta-style xG visualization
-    """
     try:
         player_shots = shots[shots['player'] == player_name]
         if player_shots.empty:
@@ -160,7 +152,7 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
 
         # Add value labels inside bars
         ax.text(goals/2, 0, f"{goals}", 
-               ha='center', va='center', color='white', fontweight='bold', fontsize=12)
+               ha='center', va='center', color='white', fontweight='bold', fontsize=10)  # Smaller font
         ax.text(xg/2, 0, "", 
                ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
 
@@ -183,27 +175,29 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
             f"{games} games"
         )
         ax.text(max_value * 1.15, 0, metrics_text, 
-               ha='left', va='center', linespacing=1.8)
+               ha='left', va='center', linespacing=1.8, fontsize=9)  # Smaller font
 
         # Add xG scale indicator
         ax.text(0.02, -0.8, "Low xG", transform=ax.transAxes, 
-               fontsize=9, color='#666666')
+               fontsize=8, color='#666666')  # Smaller font
         ax.text(0.98, -0.8, "High xG", transform=ax.transAxes, 
-               fontsize=9, color='#666666', ha='right')
+               fontsize=8, color='#666666', ha='right')  # Smaller font
         ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
-               color='#666666', linewidth=2, clip_on=False)
+               color='#666666', linewidth=1.5, clip_on=False)  # Thinner line
 
-        # Add title with team color
+        # Improved title styling
         player_color = HOME_COLOR if team_name == home_team else AWAY_COLOR
         fig.text(0.05, 0.9, player_name, 
-                fontsize=16, fontweight='bold', ha='left', color=player_color)
-        fig.text(0.05, 0.82, f"{team_name} | {competition_info}", 
-                fontsize=11, color='#666666', ha='left')
+                fontsize=14,  # Smaller font
+                fontweight='bold', 
+                ha='left', 
+                color=player_color)
+        fig.text(0.05, 0.84, f"{team_name} | {competition_info}",  # Adjusted vertical position
+                fontsize=10,  # Smaller font
+                color='#666666', 
+                ha='left')
 
         st.pyplot(fig)
-
-    except Exception as e:
-        st.error(f"Error creating xG visualization: {str(e)}")
 
 def shots_goal(shots, h, w, match_id):
     try:
@@ -273,25 +267,30 @@ def goals(shots, h, w, match_id):
                 plot_x = x
                 plot_y = pitchWidthY - y
                 color = HOME_COLOR
+                text_color = SOFT_RED if DARK_MODE else HOME_COLOR
             else:
                 plot_x = pitchLengthX - x
                 plot_y = y
                 color = AWAY_COLOR
+                text_color = AWAY_COLOR
 
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color)
             ax.add_patch(shotCircle)
 
-            # Updated player name text with foot notation
+            # Improved text placement and styling
             player_name = shot['player'].split()[-1]
             body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
             info_text = f"{player_name}\n{body_part}"
-            text = ax.text(plot_x, plot_y + 5, info_text, 
-                          fontsize=FONT_SIZE_MD,
-                          color=color,
+            
+            # Adjust text position based on bubble size
+            text_y_offset = 5 + circleSize
+            text = ax.text(plot_x, plot_y + text_y_offset, info_text, 
+                          fontsize=FONT_SIZE_SM,  # Smaller font size
+                          color=text_color,
                           ha='center', va='bottom', 
-                          fontfamily=FONT_BOLD,
-                          weight='bold')
-            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
+                          fontfamily=FONT,
+                          alpha=0.8)  # Reduced opacity
+            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black", alpha=0.5)])
 
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
@@ -366,6 +365,8 @@ def defensive_actions(events, h, w, match_id, action_type):
     except Exception as e:
         st.error(f"{action_type} visualization error: {str(e)}")
 
+
+
 def player_actions_grid(events, team_name, players, action_type, color):
     try:
         if not players:
@@ -384,7 +385,7 @@ def player_actions_grid(events, team_name, players, action_type, color):
         n_cols = min(3, n_players)
         n_rows = (n_players + n_cols - 1) // n_cols
         
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4.5*n_rows))  # Increased height
         fig.set_facecolor(FIG_BG_COLOR)
         
         if n_players == 1:
@@ -398,18 +399,17 @@ def player_actions_grid(events, team_name, players, action_type, color):
             
             plot_player_actions(events[action_type], player, action_type, color, ax)
             
-            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD)
+            # Adjusted title position to prevent overlap
+            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD, pad=10)  # Added padding
         
         for j in range(i+1, n_rows*n_cols):
             axes.flatten()[j].axis('off')
         
+        # Adjusted suptitle position
         fig.suptitle(f"{team_name} {action_type.title()} by Player", 
-                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98)
-        plt.tight_layout()
+                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98 if n_rows > 1 else 0.9)
+        plt.tight_layout(pad=2.5)  # Increased padding
         st.pyplot(fig)
-        
-    except Exception as e:
-        st.error(f"Error creating player actions grid: {str(e)}")
 
 def pass_network(events, team_name, match_id, color):
     try:
