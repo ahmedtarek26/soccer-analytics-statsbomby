@@ -24,7 +24,7 @@ if DARK_MODE:
     LINE_COLOR = "#efefef"
     TEXT_COLOR = "#ffffff"
     HOME_COLOR = "#ff6b6b"
-    AWAY_COLOR = "#64b5f6"
+    AWAY_COLOR = "#64b5f6"  # Darker blue for dark mode
     FIG_BG_COLOR = "#121212"
     PLOTLY_TEMPLATE = "plotly_dark"
     XG_BAR_COLOR = "#64b5f6"
@@ -39,9 +39,9 @@ else:
     PLOTLY_TEMPLATE = "plotly_white"
     XG_BAR_COLOR = "#1e90ff"
 
-# Font settings - using smoother font
-FONT = 'DejaVu Sans'
-FONT_BOLD = 'DejaVu Sans'
+# Font settings - using more modern font
+FONT = 'Arial'
+FONT_BOLD = 'Arial'
 FONT_SIZE_SM = 10
 FONT_SIZE_MD = 12
 FONT_SIZE_LG = 14
@@ -51,89 +51,8 @@ FONT_SIZE_XL = 16
 os.makedirs('graphs', exist_ok=True)
 
 # --------------------------
-# DATA PROCESSING FUNCTIONS
+# VISUALIZATION FUNCTIONS (Updated)
 # --------------------------
-
-def matches_id(data):
-    match_id = []
-    match_name = []
-    match_index = []
-    for i in range(len(data)):
-        match_index.append(i)
-        match_id.append(data['match_id'][i])
-        match_name.append(f"{data['home_team'][i]} vs {data['away_team'][i]} {data['competition_stage'][i]}")
-    return match_name, dict(zip(match_name, match_index)), dict(zip(match_name, match_id))
-
-def match_data(data, match_index):
-    return (
-        data['home_team'][match_index],
-        data['away_team'][match_index],
-        data['home_score'][match_index],
-        data['away_score'][match_index],
-        data['stadium'][match_index],
-        data['home_managers'][match_index],
-        data['away_managers'][match_index],
-        data['competition_stage'][match_index]
-    )
-
-def lineups(h, w, data):
-    return data[h]['player_name'].values, data[w]['player_name'].values
-
-# --------------------------
-# VISUALIZATION FUNCTIONS
-# --------------------------
-
-def create_pitch_figure(title, figsize=(10, 6.5)):
-    fig, ax = plt.subplots(figsize=figsize, facecolor=FIG_BG_COLOR)
-    pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
-    pitch.draw(ax=ax)
-    plt.gca().invert_yaxis()
-    fig_text(s=title, x=0.5, y=0.95, fontsize=FONT_SIZE_LG, 
-            color=TEXT_COLOR, fontfamily=FONT_BOLD, ha='center')
-    return fig, ax
-
-def save_and_display(fig, filename):
-    fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
-            fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
-            color=TEXT_COLOR, fontfamily=FONT)
-    plt.tight_layout()
-    plt.savefig(f'graphs/{filename}', dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
-    st.image(f'graphs/{filename}')
-
-def dribbles(events, h, w, match_id):
-    try:
-        fig, ax = create_pitch_figure('Dribbles')
-        
-        if 'dribbles' in events:
-            x_h = []
-            y_h = []
-            x_w = []
-            y_w = []
-            
-            for i, dribble in events['dribbles'].iterrows():
-                if events['dribbles']['possession_team'][i] == h:
-                    x_h.append(dribble['location'][0])
-                    y_h.append(dribble['location'][1])
-                elif events['dribbles']['possession_team'][i] == w:
-                    x_w.append(dribble['location'][0])
-                    y_w.append(dribble['location'][1])
-            
-            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
-            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
-            
-            legend = ax.legend(loc='upper right', framealpha=0.8)
-            legend.get_frame().set_facecolor(FIG_BG_COLOR)
-            for text in legend.get_texts():
-                text.set_color(TEXT_COLOR)
-            
-            total_dribbles = len(events['dribbles'])
-            fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
-                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-            save_and_display(fig, f'dribbles-{match_id}.png')
-        else:
-            st.warning("No dribbles data available")
-    except Exception as e:
-        st.error(f"Dribbles visualization error: {str(e)}")
 
 def shots_goal(shots, h, w, match_id):
     try:
@@ -163,12 +82,12 @@ def shots_goal(shots, h, w, match_id):
             ax.add_patch(shotCircle)
 
             if goal:
-                # Use last name only with smoother font
+                # Use last name only like in pass network
                 player_name = shot['player'].split()[-1]
                 text = ax.text(plot_x + 1, plot_y + 2, player_name, 
                               fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
                               ha='left', va='center', fontfamily=FONT,
-                              fontweight='normal')  # Changed to normal weight
+                              fontweight='bold')
                 text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
         total_shots = len(shots)
@@ -213,28 +132,25 @@ def goals(shots, h, w, match_id):
                 plot_y = y
                 color = AWAY_COLOR
 
-            # Add player name inside the bubble with opacity
-            player_name = shot['player'].split()[-1]
-            ax.text(plot_x, plot_y, player_name, 
-                   fontsize=FONT_SIZE_SM-1, color='white',
-                   ha='center', va='center', fontfamily=FONT,
-                   fontweight='normal')  # Smoother font weight
-            
-            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.7)
+            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
             ax.add_patch(shotCircle)
 
-            # Additional info below the bubble
-            info_text = f"{shot['shot_body_part'].title()}\nxG: {shot['shot_statsbomb_xg']:.2f}"
-            text = ax.text(plot_x, plot_y + circleSize + 3, info_text, 
-                          fontsize=FONT_SIZE_SM-1, color=TEXT_COLOR,
-                          ha='center', va='bottom', fontfamily=FONT)
+            # Use last name only and improved formatting
+            player_name = shot['player'].split()[-1]
+            info_text = f"{player_name}\n{shot['shot_body_part'].title()}\nxG: {shot['shot_statsbomb_xg']:.2f}"
+            text = ax.text(plot_x, plot_y + 5, info_text, 
+                          fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                          ha='center', va='bottom', fontfamily=FONT,
+                          fontweight='bold')
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
 
-# [Rest of the functions remain the same...]
+# --------------------------
+# MAIN APP FUNCTION (Updated)
+# --------------------------
 
 def main():
     st.title('⚽ Football Match Analysis')
@@ -304,7 +220,7 @@ def main():
             st.markdown("---")
             st.header("Match Visualizations")
             
-            tab1, tab2, tab3, tab4 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats"])
+            tab1, tab2, tab3 = st.tabs(["⚽ Attack", "🛡️ Defense", "📊 Stats"])  # Removed individual player tab
             
             with tab1:
                 shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
@@ -329,18 +245,6 @@ def main():
                 defensive_actions(events, home_team, away_team, match_id, 'miscontrols')
             
             with tab3:
-                st.subheader("Player Actions")
-                
-                action_type = st.selectbox("Select action type", 
-                                         ['carrys', 'passes', 'shots', 'dribbles'])
-                
-                st.subheader(f"{home_team} Players")
-                player_actions_grid(events, home_team, list(home_lineup), action_type, HOME_COLOR)
-                
-                st.subheader(f"{away_team} Players")
-                player_actions_grid(events, away_team, list(away_lineup), action_type, AWAY_COLOR)
-            
-            with tab4:
                 st.subheader("Match Statistics")
                 
                 if 'shots' in events:
