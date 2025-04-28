@@ -232,7 +232,7 @@ def shots_goal(shots, h, w, match_id):
 
             if goal:
                 text = ax.text(plot_x + 1, plot_y + 2, shot['player'].split()[-1], 
-                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
+                              fontsize=7, color='gray', 
                               ha='left', va='center', fontfamily=FONT)
                 text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
