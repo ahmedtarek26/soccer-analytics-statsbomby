@@ -51,10 +51,89 @@ FONT_SIZE_XL = 16
 os.makedirs('graphs', exist_ok=True)
 
 # --------------------------
-# VISUALIZATION FUNCTIONS (Updated)
+# DATA PROCESSING FUNCTIONS
 # --------------------------
 
+def matches_id(data):
+    """Extract match information and create mapping dictionaries"""
+    match_id = []
+    match_name = []
+    match_index = []
+    for i in range(len(data)):
+        match_index.append(i)
+        match_id.append(data['match_id'][i])
+        match_name.append(f"{data['home_team'][i]} vs {data['away_team'][i]} {data['competition_stage'][i]}")
+    return match_name, dict(zip(match_name, match_index)), dict(zip(match_name, match_id))
+
+def match_data(data, match_index):
+    """Extract match details for a specific match index"""
+    return (
+        data['home_team'][match_index],
+        data['away_team'][match_index],
+        data['home_score'][match_index],
+        data['away_score'][match_index],
+        data['stadium'][match_index],
+        data['home_managers'][match_index],
+        data['away_managers'][match_index],
+        data['competition_stage'][match_index]
+    )
+
+def lineups(h, w, data):
+    """Get lineups for home and away teams"""
+    return data[h]['player_name'].values, data[w]['player_name'].values
+
+# --------------------------
+# VISUALIZATION FUNCTIONS
+# --------------------------
+
+def create_pitch_figure(title, figsize=(10, 6.5)):
+    """Create a standard pitch figure with consistent styling"""
+    fig, ax = plt.subplots(figsize=figsize, facecolor=FIG_BG_COLOR)
+    pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+    pitch.draw(ax=ax)
+    plt.gca().invert_yaxis()
+    fig_text(s=title, x=0.5, y=0.95, fontsize=FONT_SIZE_LG, 
+            color=TEXT_COLOR, fontfamily=FONT_BOLD, ha='center')
+    return fig, ax
+
+def save_and_display(fig, filename):
+    """Save figure to file and display in Streamlit"""
+    fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
+            fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
+            color=TEXT_COLOR, fontfamily=FONT)
+    plt.tight_layout()
+    plt.savefig(f'graphs/{filename}', dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
+    st.image(f'graphs/{filename}')
+
+def plot_player_actions(events, player_name, action_type, color, ax):
+    """Plot individual player actions on pitch"""
+    player_events = events[events['player'] == player_name]
+    if len(player_events) == 0:
+        return
+    
+    if action_type == 'carrys':
+        # Add legend
+        start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
+        end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
+        ax.legend(handles=[start_marker, end_marker], 
+                 facecolor=FIG_BG_COLOR, 
+                 edgecolor=FIG_BG_COLOR)
+        
+        # Plot arrows instead of lines
+        for _, event in player_events.iterrows():
+            x_start, y_start = event['location']
+            x_end, y_end = event['carry_end_location']
+            dx, dy = x_end - x_start, y_end - y_start
+            ax.arrow(x_start, y_start, dx, dy, 
+                    head_width=1.5, head_length=2, 
+                    fc=color, ec=color, alpha=0.5)
+    else:
+        x = player_events['location'].apply(lambda loc: loc[0])
+        y = player_events['location'].apply(lambda loc: loc[1])
+        ax.scatter(x, y, s=80, color=color, alpha=0.7)
+
 def shots_goal(shots, h, w, match_id):
+    """Visualize shots and goals"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -107,6 +186,7 @@ def shots_goal(shots, h, w, match_id):
         st.error(f"Shots visualization error: {str(e)}")
 
 def goals(shots, h, w, match_id):
+    """Visualize goals with details"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -148,8 +228,50 @@ def goals(shots, h, w, match_id):
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
 
+def player_actions_grid(events, team_name, players, action_type, color):
+    """Grid of player actions for a team"""
+    try:
+        if not players:
+            st.warning(f"No players available for {team_name}")
+            return
+            
+        if action_type not in events or events[action_type].empty:
+            st.warning(f"No {action_type} data available for {team_name}")
+            return
+        
+        n_players = len(players)
+        n_cols = min(3, n_players)
+        n_rows = (n_players + n_cols - 1) // n_cols
+        
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+        fig.set_facecolor(FIG_BG_COLOR)
+        
+        if n_players == 1:
+            axes = np.array([axes])
+        
+        for i, (player, ax) in enumerate(zip(players, axes.flatten())):
+            ax.set_facecolor(FIG_BG_COLOR)
+            pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+            pitch.draw(ax=ax)
+            ax.invert_yaxis()
+            
+            plot_player_actions(events[action_type], player, action_type, color, ax)
+            
+            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD)
+        
+        for j in range(i+1, n_rows*n_cols):
+            axes.flatten()[j].axis('off')
+        
+        fig.suptitle(f"{team_name} {action_type.title()} by Player", 
+                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98)
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+    except Exception as e:
+        st.error(f"Error creating player actions grid: {str(e)}")
+
 # --------------------------
-# MAIN APP FUNCTION (Updated)
+# MAIN APP FUNCTION
 # --------------------------
 
 def main():
@@ -220,7 +342,7 @@ def main():
             st.markdown("---")
             st.header("Match Visualizations")
             
-            tab1, tab2, tab3 = st.tabs(["⚽ Attack", "🛡️ Defense", "📊 Stats"])  # Removed individual player tab
+            tab1, tab2, tab3, tab4 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats"])
             
             with tab1:
                 shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
@@ -245,6 +367,18 @@ def main():
                 defensive_actions(events, home_team, away_team, match_id, 'miscontrols')
             
             with tab3:
+                st.subheader("Player Actions")
+                
+                action_type = st.selectbox("Select action type", 
+                                         ['carrys', 'passes', 'shots', 'dribbles'])
+                
+                st.subheader(f"{home_team} Players")
+                player_actions_grid(events, home_team, list(home_lineup), action_type, HOME_COLOR)
+                
+                st.subheader(f"{away_team} Players")
+                player_actions_grid(events, away_team, list(away_lineup), action_type, AWAY_COLOR)
+            
+            with tab4:
                 st.subheader("Match Statistics")
                 
                 if 'shots' in events:
