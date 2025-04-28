@@ -230,12 +230,7 @@ def shots_goal(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=1 if goal else 0.2)
             ax.add_patch(shotCircle)
 
-            if goal:
-                text = ax.text(plot_x + 1, plot_y + 2, shot['player'].split()[-1], 
-                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
-                              ha='left', va='center', fontfamily=FONT)
-                text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
-
+  
         total_shots = len(shots)
         fig_text(s=f'Total Shots: {total_shots}', x=0.4, y=0.85, 
                 fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
@@ -295,23 +290,29 @@ def goals(shots, h, w, match_id):
             player_name = shot['player'].split()[-1]
             ax.text(plot_x, plot_y, player_name, 
                    fontsize=FONT_SIZE_SM-1, color='white',
-                   ha='center', va='center', fontfamily=FONT)
+                   ha='center', va='center', fontfamily=FONT,
+                   fontweight='bold')
             
-            # Add foot information
+            # Add foot information as text annotation
             foot = shot['shot_body_part']
             if foot == 'Left Foot':
-                marker = 'L'
-                offset = -circleSize - 2
+                foot_text = 'L'
+                offset_x = -circleSize - 2
+                offset_y = 0
             elif foot == 'Right Foot':
-                marker = 'R'
-                offset = circleSize + 2
+                foot_text = 'R'
+                offset_x = circleSize + 2
+                offset_y = 0
             else:
-                marker = 'O'  # Other
-                offset = 0
+                foot_text = 'O'
+                offset_x = 0
+                offset_y = -circleSize - 2
             
-            ax.text(plot_x + offset, plot_y, marker, 
+            ax.text(plot_x + offset_x, plot_y + offset_y, foot_text,
                    fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
-                   ha='center', va='center', fontfamily=FONT_BOLD)
+                   ha='center', va='center', fontfamily=FONT_BOLD,
+                   bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
+                            boxstyle='round,pad=0.2', alpha=0.7))
 
         # Add colorbar for time
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
@@ -322,13 +323,14 @@ def goals(shots, h, w, match_id):
         plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=TEXT_COLOR)
         
         # Add legend for foot markers
+        from matplotlib.lines import Line2D
         legend_elements = [
-            plt.Line2D([0], [0], marker='L', color='w', label='Left Foot',
-                      markerfacecolor=TEXT_COLOR, markersize=10),
-            plt.Line2D([0], [0], marker='R', color='w', label='Right Foot',
-                      markerfacecolor=TEXT_COLOR, markersize=10),
-            plt.Line2D([0], [0], marker='O', color='w', label='Other',
-                      markerfacecolor=TEXT_COLOR, markersize=10)
+            Line2D([0], [0], marker='o', color='w', label='Left Foot (L)',
+                  markerfacecolor='gray', markersize=8),
+            Line2D([0], [0], marker='o', color='w', label='Right Foot (R)',
+                  markerfacecolor='gray', markersize=8),
+            Line2D([0], [0], marker='o', color='w', label='Other (O)',
+                  markerfacecolor='gray', markersize=8)
         ]
         ax.legend(handles=legend_elements, loc='upper right', 
                  facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
