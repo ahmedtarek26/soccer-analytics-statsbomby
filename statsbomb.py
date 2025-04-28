@@ -232,8 +232,9 @@ def shots_goal(shots, h, w, match_id):
 
   
         total_shots = len(shots)
-        fig_text(s=f'Total Shots: {total_shots}', x=0.4, y=0.85, 
-                fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
+        fig_text(s=f'Total Shots: {total_shots}', x=0.15, y=0.85, 
+                fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+    
         
         home_patch = plt.Circle((0,0), 1, color=HOME_COLOR, label=h)
         away_patch = plt.Circle((0,0), 1, color=AWAY_COLOR, label=w)
