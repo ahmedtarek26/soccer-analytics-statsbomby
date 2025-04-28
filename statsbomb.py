@@ -262,6 +262,9 @@ def goals(shots, h, w, match_id):
         # Create red colormap from light to dark red
         cmap = plt.cm.Reds
         
+        # Create legend entries for player names
+        legend_entries = {}
+        
         # Plot each goal with color based on time
         for i, shot in goals_df.iterrows():
             x = shot['location'][0]
@@ -286,13 +289,25 @@ def goals(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
             ax.add_patch(shotCircle)
             
-            # Add player name inside bubble - dynamically choose text color
+            # Handle player name display
             player_name = shot['player'].split()[-1]
-            text_color = 'black' if time_norm < 0.5 else 'white'  # Darker bubbles get white text
-            ax.text(plot_x, plot_y, player_name, 
-                   fontsize=FONT_SIZE_SM-1, color="black",zorder=4,
+            text_color = 'black' if time_norm < 0.5 else 'white'
+            
+            # For very small bubbles (xG < 0.1), use first initial only
+            if shot['shot_statsbomb_xg'] < 0.1:
+                display_text = player_name[0]
+                fontsize = FONT_SIZE_SM-2
+            else:
+                display_text = player_name
+                fontsize = FONT_SIZE_SM-1
+            
+            ax.text(plot_x, plot_y, display_text, 
+                   fontsize=fontsize, color=text_color,
                    ha='center', va='center', fontfamily=FONT,
                    fontweight='bold')
+            
+            # Store full name for legend
+            legend_entries[player_name[0]] = player_name
             
             # Add foot information
             foot = shot['shot_body_part']
@@ -315,27 +330,34 @@ def goals(shots, h, w, match_id):
                    bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
                             boxstyle='round,pad=0.2', alpha=0.7))
 
-        # Add vertical colorbar on the right side
+        # Add thin vertical colorbar on the right side
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.002, fraction=0.04)
-        cbar.set_label('Minute Scored', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
-        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-2)
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=15)  # Thinner bar
+        cbar.set_label('Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2, labelpad=2)
+        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
-        # Add legend for foot markers
+        # Create combined legend
         from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label='Left Foot (L)',
-                  markerfacecolor='gray', markersize=8),
+                  markerfacecolor='gray', markersize=6),
             Line2D([0], [0], marker='o', color='w', label='Right Foot (R)',
-                  markerfacecolor='gray', markersize=8),
+                  markerfacecolor='gray', markersize=6),
             Line2D([0], [0], marker='o', color='w', label='Other (O)',
-                  markerfacecolor='gray', markersize=8)
+                  markerfacecolor='gray', markersize=6)
         ]
-        ax.legend(handles=legend_elements, loc='upper left', 
+        
+        # Add player initials mapping to legend
+        player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
+        legend_elements.append(Line2D([0], [0], marker='', color='w', 
+                                   label=f"Players:\n{player_legend}",
+                                   markersize=0))
+        
+        ax.legend(handles=legend_elements, loc='upper right', 
                  facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
-                 fontsize=FONT_SIZE_SM)
+                 fontsize=FONT_SIZE_SM-2, handlelength=1.5)
         
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
