@@ -216,7 +216,7 @@ def shots_goal(shots, h, w, match_id):
             y = shot['location'][1]
             goal = shot['shot_outcome'] == 'Goal'
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 3
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
 
             if team_name == h:
                 plot_x = x
@@ -238,7 +238,7 @@ def shots_goal(shots, h, w, match_id):
 
         total_shots = len(shots)
         fig_text(s=f'Total Shots: {total_shots}', x=0.4, y=0.85, 
-                fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+                fontsize=FONT_SIZE_SM, color=TEXT_COLOR, fontfamily=FONT)
         
         home_patch = plt.Circle((0,0), 1, color=HOME_COLOR, label=h)
         away_patch = plt.Circle((0,0), 1, color=AWAY_COLOR, label=w)
@@ -267,7 +267,7 @@ def goals(shots, h, w, match_id):
             x = shot['location'][0]
             y = shot['location'][1]
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 3
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
 
             if team_name == h:
                 plot_x = x
@@ -286,8 +286,8 @@ def goals(shots, h, w, match_id):
             body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
             info_text = f"{player_name}\n{body_part}"
             text = ax.text(plot_x, plot_y, info_text, 
-                          fontsize=FONT_SIZE_MD,
-                          color=TEXT_COLOR,
+                          fontsize=FONT_SIZE_SM,
+                          color='white',
                           ha='center', va='bottom')
             text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
