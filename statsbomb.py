@@ -290,7 +290,7 @@ def goals(shots, h, w, match_id):
             player_name = shot['player'].split()[-1]
             text_color = 'black' if time_norm < 0.5 else 'white'  # Darker bubbles get white text
             ax.text(plot_x, plot_y, player_name, 
-                   fontsize=FONT_SIZE_SM-1, color="black",zorder=4
+                   fontsize=FONT_SIZE_SM-1, color="black",zorder=4,
                    ha='center', va='center', fontfamily=FONT,
                    fontweight='bold')
             
