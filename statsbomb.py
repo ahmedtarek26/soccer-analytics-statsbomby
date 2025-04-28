@@ -259,9 +259,8 @@ def goals(shots, h, w, match_id):
             st.warning("No goals data available")
             return
 
-        # Create a colormap based on time of goal (normalized to 0-1)
-        times = goals_df['minute'] / (goals_df['minute'].max() + 1)
-        cmap = plt.cm.viridis  # Sequential colormap
+        # Create red colormap from light to dark red
+        cmap = plt.cm.Reds
         
         # Plot each goal with color based on time
         for i, shot in goals_df.iterrows():
@@ -279,7 +278,7 @@ def goals(shots, h, w, match_id):
                 plot_y = y
                 team_color = AWAY_COLOR
             
-            # Color based on time scored
+            # Color based on time scored (normalized 0-1)
             time_norm = shot['minute'] / (goals_df['minute'].max() + 1)
             color = cmap(time_norm)
             
@@ -287,14 +286,15 @@ def goals(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
             ax.add_patch(shotCircle)
             
-            # Add player name inside bubble
+            # Add player name inside bubble - dynamically choose text color
             player_name = shot['player'].split()[-1]
+            text_color = 'black' if time_norm < 0.5 else 'white'  # Darker bubbles get white text
             ax.text(plot_x, plot_y, player_name, 
-                   fontsize=FONT_SIZE_SM-1, color='white',
+                   fontsize=FONT_SIZE_SM-1, color=text_color,
                    ha='center', va='center', fontfamily=FONT,
                    fontweight='bold')
             
-            # Add foot information as text annotation
+            # Add foot information
             foot = shot['shot_body_part']
             if foot == 'Left Foot':
                 foot_text = 'L'
@@ -315,13 +315,13 @@ def goals(shots, h, w, match_id):
                    bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
                             boxstyle='round,pad=0.2', alpha=0.7))
 
-        # Add colorbar for time
+        # Add vertical colorbar on the right side
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.05)
-        cbar.set_label('Minute Scored', color=TEXT_COLOR)
-        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR)
-        plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=TEXT_COLOR)
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, fraction=0.04)
+        cbar.set_label('Minute Scored', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
+        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-2)
+        plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
         # Add legend for foot markers
         from matplotlib.lines import Line2D
@@ -334,7 +334,8 @@ def goals(shots, h, w, match_id):
                   markerfacecolor='gray', markersize=8)
         ]
         ax.legend(handles=legend_elements, loc='upper right', 
-                 facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
+                 facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
+                 fontsize=FONT_SIZE_SM)
         
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
