@@ -288,7 +288,7 @@ def goals(shots, h, w, match_id):
             text = ax.text(plot_x, plot_y, info_text, 
                           fontsize=7,
                           color='white',
-                          opacity=0.7, #ha='center', va='bottom'
+                          #ha='center', va='bottom'
                           )
             text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
