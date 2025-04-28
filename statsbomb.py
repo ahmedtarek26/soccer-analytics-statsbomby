@@ -260,7 +260,7 @@ def goals(shots, h, w, match_id):
             return
 
         # Create red colormap from light to dark red
-        cmap = plt.cm.Spectral_r
+        cmap = plt.cm.OrRd
         
         # Create legend entries for player names
         legend_entries = {}
