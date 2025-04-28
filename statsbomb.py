@@ -263,34 +263,76 @@ def goals(shots, h, w, match_id):
             st.warning("No goals data available")
             return
 
+        # Create a colormap based on time of goal (normalized to 0-1)
+        times = goals_df['minute'] / (goals_df['minute'].max() + 1)
+        cmap = plt.cm.viridis  # Sequential colormap
+        
+        # Plot each goal with color based on time
         for i, shot in goals_df.iterrows():
             x = shot['location'][0]
             y = shot['location'][1]
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
-
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8  # Keep size based on xG
+            
             if team_name == h:
                 plot_x = x
                 plot_y = pitchWidthY - y
-                color = HOME_COLOR
+                team_color = HOME_COLOR
             else:
                 plot_x = pitchLengthX - x
                 plot_y = y
-                color = AWAY_COLOR
-
-            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color)
+                team_color = AWAY_COLOR
+            
+            # Color based on time scored
+            time_norm = shot['minute'] / (goals_df['minute'].max() + 1)
+            color = cmap(time_norm)
+            
+            # Plot the goal bubble
+            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
             ax.add_patch(shotCircle)
-
-            # Updated player name text with foot notation
+            
+            # Add player name inside bubble
             player_name = shot['player'].split()[-1]
-            body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
-            info_text = f"{player_name}\n{body_part}"
-            text = ax.text(plot_x, plot_y, info_text, 
-                          fontsize=FONT_SIZE_SM,
-                          color='white',
-                          ha='center', va='bottom')
-            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
+            ax.text(plot_x, plot_y, player_name, 
+                   fontsize=FONT_SIZE_SM-1, color='white',
+                   ha='center', va='center', fontfamily=FONT)
+            
+            # Add foot information
+            foot = shot['shot_body_part']
+            if foot == 'Left Foot':
+                marker = 'L'
+                offset = -circleSize - 2
+            elif foot == 'Right Foot':
+                marker = 'R'
+                offset = circleSize + 2
+            else:
+                marker = 'O'  # Other
+                offset = 0
+            
+            ax.text(plot_x + offset, plot_y, marker, 
+                   fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                   ha='center', va='center', fontfamily=FONT_BOLD)
 
+        # Add colorbar for time
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
+        sm._A = []
+        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.05)
+        cbar.set_label('Minute Scored', color=TEXT_COLOR)
+        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR)
+        plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=TEXT_COLOR)
+        
+        # Add legend for foot markers
+        legend_elements = [
+            plt.Line2D([0], [0], marker='L', color='w', label='Left Foot',
+                      markerfacecolor=TEXT_COLOR, markersize=10),
+            plt.Line2D([0], [0], marker='R', color='w', label='Right Foot',
+                      markerfacecolor=TEXT_COLOR, markersize=10),
+            plt.Line2D([0], [0], marker='O', color='w', label='Other',
+                      markerfacecolor=TEXT_COLOR, markersize=10)
+        ]
+        ax.legend(handles=legend_elements, loc='upper right', 
+                 facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
+        
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
