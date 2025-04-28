@@ -216,7 +216,7 @@ def shots_goal(shots, h, w, match_id):
             y = shot['location'][1]
             goal = shot['shot_outcome'] == 'Goal'
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 3
 
             if team_name == h:
                 plot_x = x
@@ -267,7 +267,7 @@ def goals(shots, h, w, match_id):
             x = shot['location'][0]
             y = shot['location'][1]
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 5
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 3
 
             if team_name == h:
                 plot_x = x
@@ -287,7 +287,7 @@ def goals(shots, h, w, match_id):
             info_text = f"{player_name}\n{body_part}"
             text = ax.text(plot_x, plot_y, info_text, 
                           fontsize=FONT_SIZE_MD,
-                          color='white',
+                          color=TEXT_COLOR,
                           ha='center', va='bottom')
             text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
