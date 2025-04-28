@@ -688,22 +688,37 @@ def main():
 
                 
                 if 'passes' in events:
-                    passes_df = events['passes'].groupby(['player', 'team']).size().reset_index(name='count')
-                    st.plotly_chart(px.bar(passes_df, 
-                                        y='player', x='count', 
-                                        color='team',
-                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                                        title="Passes by Player", 
-                                        template=PLOTLY_TEMPLATE))
-                
+                    passes_df = events['passes'].copy()
+                    passes_df['player_lastname'] = passes_df['player'].apply(lambda name: name.split()[-1])
+
+                    passes_summary = passes_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+
+                    st.plotly_chart(px.bar(
+                        passes_summary, 
+                        y='player_lastname', 
+                        x='count', 
+                        color='team',
+                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                        title="Passes by Player (Last Names)", 
+                        template=PLOTLY_TEMPLATE
+                    ))
+
                 if 'foul_committeds' in events:
-                    fouls_df = events['foul_committeds'].groupby(['player', 'team']).size().reset_index(name='count')
-                    st.plotly_chart(px.bar(fouls_df, 
-                                        y='player', x='count', 
-                                        color='team',
-                                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                                        title="Fouls Committed", 
-                                        template=PLOTLY_TEMPLATE))
+                    fouls_df = events['foul_committeds'].copy()
+                    fouls_df['player_lastname'] = fouls_df['player'].apply(lambda name: name.split()[-1])
+
+                    fouls_summary = fouls_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+
+                    st.plotly_chart(px.bar(
+                        fouls_summary, 
+                        y='player_lastname', 
+                        x='count', 
+                        color='team',
+                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                        title="Fouls Committed by Player (Last Names)", 
+                        template=PLOTLY_TEMPLATE
+                    ))
+
 
             # Add reset button
             if st.button('Analyze New Match'):
