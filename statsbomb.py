@@ -978,3 +978,6 @@ def main():
                 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
+
+if __name__ == "__main__":
+    main()
