@@ -34,6 +34,8 @@ if DARK_MODE:
     FIG_BG_COLOR = "#121212"
     PLOTLY_TEMPLATE = "plotly_dark"
     XG_BAR_COLOR = "#64b5f6"
+    SOFT_RED = "#ff9999"
+    SOFT_BLUE = "#99ccff"
 else:
     BG_COLOR = "#ffffff"
     PITCH_COLOR = "#f8f9fa"
@@ -44,6 +46,8 @@ else:
     FIG_BG_COLOR = "#ffffff"
     PLOTLY_TEMPLATE = "plotly_white"
     XG_BAR_COLOR = "#1e90ff"
+    SOFT_RED = "#ff6b6b"
+    SOFT_BLUE = "#6699cc"
 
 # Font settings
 FONT = 'DejaVu Sans'
@@ -86,7 +90,7 @@ def lineups(h, w, data):
     return data[h]['player_name'].values, data[w]['player_name'].values
 
 # --------------------------
-# VISUALIZATION FUNCTIONS
+# UPDATED VISUALIZATION FUNCTIONS
 # --------------------------
 
 def create_pitch_figure(title, figsize=(10, 6.5)):
@@ -112,14 +116,7 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         return
     
     if action_type == 'carrys':
-        # Add legend
-        start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
-        end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
-        ax.legend(handles=[start_marker, end_marker], 
-                 facecolor=FIG_BG_COLOR, 
-                 edgecolor=FIG_BG_COLOR)
-        
-        # Plot arrows instead of lines
+        # Removed legend as requested
         for _, event in player_events.iterrows():
             x_start, y_start = event['location']
             x_end, y_end = event['carry_end_location']
@@ -133,9 +130,6 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
 
 def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
-    """
-    Creates an Opta-style xG visualization
-    """
     try:
         player_shots = shots[shots['player'] == player_name]
         if player_shots.empty:
@@ -150,7 +144,7 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
         games = player_shots['match_id'].nunique()
 
         # Create figure
-        fig, ax = plt.subplots(figsize=(8, 3), facecolor='white')
+        fig, ax = plt.subplots(figsize=(8, 3), facecolor=FIG_BG_COLOR)
         fig.subplots_adjust(left=0.05, right=0.95, top=0.8, bottom=0.2)
 
         # Main horizontal bars
@@ -160,7 +154,7 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
 
         # Add value labels inside bars
         ax.text(goals/2, 0, f"{goals}", 
-               ha='center', va='center', color='white', fontweight='bold', fontsize=12)
+               ha='center', va='center', color='white', fontweight='bold', fontsize=10)
         ax.text(xg/2, 0, "", 
                ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
 
@@ -183,22 +177,27 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
             f"{games} games"
         )
         ax.text(max_value * 1.15, 0, metrics_text, 
-               ha='left', va='center', linespacing=1.8)
+               ha='left', va='center', linespacing=1.8, fontsize=9)
 
         # Add xG scale indicator
         ax.text(0.02, -0.8, "Low xG", transform=ax.transAxes, 
-               fontsize=9, color='#666666')
+               fontsize=8, color=TEXT_COLOR)
         ax.text(0.98, -0.8, "High xG", transform=ax.transAxes, 
-               fontsize=9, color='#666666', ha='right')
+               fontsize=8, color=TEXT_COLOR, ha='right')
         ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
-               color='#666666', linewidth=2, clip_on=False)
+               color=TEXT_COLOR, linewidth=1.5, clip_on=False)
 
         # Add title with team color
         player_color = HOME_COLOR if team_name == home_team else AWAY_COLOR
         fig.text(0.05, 0.9, player_name, 
-                fontsize=16, fontweight='bold', ha='left', color=player_color)
-        fig.text(0.05, 0.82, f"{team_name} | {competition_info}", 
-                fontsize=11, color='#666666', ha='left')
+                fontsize=14,
+                fontweight='bold', 
+                ha='left', 
+                color=player_color)
+        fig.text(0.05, 0.84, f"{team_name} | {competition_info}",
+                fontsize=10,
+                color=TEXT_COLOR, 
+                ha='left')
 
         st.pyplot(fig)
 
@@ -232,7 +231,7 @@ def shots_goal(shots, h, w, match_id):
 
             if goal:
                 text = ax.text(plot_x + 1, plot_y + 2, shot['player'].split()[-1], 
-                              fontsize=7, color='gray', 
+                              fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
                               ha='left', va='center', fontfamily=FONT)
                 text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
@@ -273,97 +272,34 @@ def goals(shots, h, w, match_id):
                 plot_x = x
                 plot_y = pitchWidthY - y
                 color = HOME_COLOR
+                text_color = SOFT_RED if DARK_MODE else HOME_COLOR
             else:
                 plot_x = pitchLengthX - x
                 plot_y = y
                 color = AWAY_COLOR
+                text_color = SOFT_BLUE if DARK_MODE else AWAY_COLOR
 
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color)
             ax.add_patch(shotCircle)
 
-            # Updated player name text with foot notation
+            # Improved text placement and styling
             player_name = shot['player'].split()[-1]
             body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
             info_text = f"{player_name}\n{body_part}"
-            text = ax.text(plot_x, plot_y, info_text, 
-                          fontsize=7,
-                          color='white',
-                          #ha='center', va='bottom'
-                          )
-            text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
+            
+            # Adjust text position based on bubble size
+            text_y_offset = 3 + circleSize*1.2  # Dynamic offset based on bubble size
+            text = ax.text(plot_x, plot_y + text_y_offset, info_text, 
+                          fontsize=FONT_SIZE_SM,
+                          color=text_color,
+                          ha='center', va='bottom', 
+                          fontfamily=FONT,
+                          alpha=0.9)
+            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black", alpha=0.5)])
 
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
-
-def dribbles(events, h, w, match_id):
-    try:
-        fig, ax = create_pitch_figure('Dribbles')
-        
-        if 'dribbles' in events:
-            x_h = []
-            y_h = []
-            x_w = []
-            y_w = []
-            
-            for i, dribble in events['dribbles'].iterrows():
-                if events['dribbles']['possession_team'][i] == h:
-                    x_h.append(dribble['location'][0])
-                    y_h.append(dribble['location'][1])
-                elif events['dribbles']['possession_team'][i] == w:
-                    x_w.append(dribble['location'][0])
-                    y_w.append(dribble['location'][1])
-            
-            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
-            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
-            
-            legend = ax.legend(loc='upper right', framealpha=0.8)
-            legend.get_frame().set_facecolor(FIG_BG_COLOR)
-            for text in legend.get_texts():
-                text.set_color(TEXT_COLOR)
-            
-            total_dribbles = len(events['dribbles'])
-            fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
-                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-            save_and_display(fig, f'dribbles-{match_id}.png')
-        else:
-            st.warning("No dribbles data available")
-    except Exception as e:
-        st.error(f"Dribbles visualization error: {str(e)}")
-
-def defensive_actions(events, h, w, match_id, action_type):
-    try:
-        title_map = {
-            'foul_committeds': 'Fouls Committed',
-            'foul_wons': 'Fouls Won',
-            'interceptions': 'Interceptions',
-            'dispossesseds': 'Dispossessions',
-            'miscontrols': 'Miscontrols'
-        }
-        fig, ax = create_pitch_figure(title_map[action_type])
-        
-        if action_type in events:
-            df = events[action_type]
-            for team, color in [(h, HOME_COLOR), (w, AWAY_COLOR)]:
-                team_data = df[df['possession_team'] == team]
-                if not team_data.empty:
-                    x = team_data['location'].apply(lambda loc: loc[0])
-                    y = team_data['location'].apply(lambda loc: loc[1])
-                    ax.scatter(x, y, s=80, color=color, alpha=0.7, label=team)
-            
-            legend = ax.legend(loc='upper right', framealpha=0.8)
-            legend.get_frame().set_facecolor(FIG_BG_COLOR)
-            for text in legend.get_texts():
-                text.set_color(TEXT_COLOR)
-            
-            total_actions = len(df)
-            fig_text(s=f'Total: {total_actions}', x=0.15, y=0.85,
-                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-            save_and_display(fig, f'{action_type}-{match_id}.png')
-        else:
-            st.warning(f"No {action_type.replace('_', ' ')} data available")
-    except Exception as e:
-        st.error(f"{action_type} visualization error: {str(e)}")
 
 def player_actions_grid(events, team_name, players, action_type, color):
     try:
@@ -383,7 +319,7 @@ def player_actions_grid(events, team_name, players, action_type, color):
         n_cols = min(3, n_players)
         n_rows = (n_players + n_cols - 1) // n_cols
         
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))  # Increased height
         fig.set_facecolor(FIG_BG_COLOR)
         
         if n_players == 1:
@@ -397,130 +333,20 @@ def player_actions_grid(events, team_name, players, action_type, color):
             
             plot_player_actions(events[action_type], player, action_type, color, ax)
             
-            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD)
+            # Adjusted title position to prevent overlap
+            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD, pad=12, y=0.95)  # Added padding and vertical position
         
         for j in range(i+1, n_rows*n_cols):
             axes.flatten()[j].axis('off')
         
+        # Adjusted suptitle position with more padding
         fig.suptitle(f"{team_name} {action_type.title()} by Player", 
-                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98)
-        plt.tight_layout()
+                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98 if n_rows > 1 else 0.92)
+        plt.tight_layout(pad=3.0, h_pad=2.0, w_pad=2.0)  # Increased padding
         st.pyplot(fig)
         
     except Exception as e:
         st.error(f"Error creating player actions grid: {str(e)}")
-
-def pass_network(events, team_name, match_id, color):
-    try:
-        if 'passes' not in events:
-            st.warning(f"No passes data found for {team_name}")
-            return
-            
-        passes = events['passes']
-        team_passes = passes[passes['team'] == team_name]
-        if len(team_passes) == 0:
-            st.warning(f"No passes found for {team_name}")
-            return
-            
-        successful_passes = team_passes[team_passes['pass_outcome'].isna()].copy()
-        if len(successful_passes) == 0:
-            st.warning(f"No successful passes found for {team_name}")
-            return
-            
-        locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
-        successful_passes[['x', 'y']] = locations
-        
-        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
-        pass_counts = successful_passes['player'].value_counts()
-        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
-        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
-        
-        pass_connections = successful_passes.groupby(
-            ['player', 'pass_recipient']).size().reset_index(name='count')
-        
-        pass_connections = pass_connections.merge(
-            avg_locations[['x', 'y']], 
-            left_on='player', 
-            right_index=True
-        )
-        pass_connections = pass_connections.merge(
-            avg_locations[['x', 'y']], 
-            left_on='pass_recipient', 
-            right_index=True,
-            suffixes=['', '_end']
-        )
-        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
-        
-        pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
-                     line_color="black", linewidth=1)
-        fig, ax = pitch.draw(figsize=(10, 6.5))
-        fig.set_facecolor(FIG_BG_COLOR)
-        
-        heatmap_bins = (6, 4)
-        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
-                                        statistic='count', bins=heatmap_bins)
-        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
-                     alpha=0.3, zorder=0.5)
-        
-        pitch.lines(
-            pass_connections.x,
-            pass_connections.y,
-            pass_connections.x_end,
-            pass_connections.y_end,
-            lw=pass_connections.width,
-            color=color,
-            zorder=1,
-            ax=ax
-        )
-        
-        pitch.scatter(
-            avg_locations.x,
-            avg_locations.y,
-            s=avg_locations.marker_size,
-            color=color,
-            edgecolors="black",
-            linewidth=0.5,
-            alpha=1,
-            ax=ax,
-            zorder=2
-        )
-        
-        pitch.scatter(
-            avg_locations.x,
-            avg_locations.y,
-            s=avg_locations.marker_size/2,
-            color="white",
-            edgecolors="black",
-            linewidth=0.5,
-            alpha=1,
-            ax=ax,
-            zorder=3
-        )
-        
-        for index, row in avg_locations.iterrows():
-            text = ax.text(
-                row.x, row.y,
-                index.split()[-1],
-                color="black",
-                va="center",
-                ha="center",
-                size=10,
-                weight="bold",
-                zorder=4
-            )
-            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
-        
-        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
-        fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
-                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color='black')
-        
-        plt.tight_layout()
-        plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
-                   dpi=300, bbox_inches='tight')
-        st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
-        
-    except Exception as e:
-        st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
 # --------------------------
 # MAIN APP FUNCTION
@@ -542,8 +368,6 @@ def main():
         matches_names, matches_idx, matches_id_dict = matches_id(data)
         match = st.selectbox('Select the match', matches_names)
         
-        # In the main() function, replace this section:
-
         if st.button('Analyze Match') or st.session_state.analyzed:
             st.session_state.analyzed = True
             if st.session_state.match_data is None:
@@ -573,7 +397,7 @@ def main():
                 }
             else:
                 # Retrieve data from session state
-                match_data_dict = st.session_state.match_data  # Changed variable name here
+                match_data_dict = st.session_state.match_data
                 home_team = match_data_dict['home_team']
                 away_team = match_data_dict['away_team']
                 home_score = match_data_dict['home_score']
