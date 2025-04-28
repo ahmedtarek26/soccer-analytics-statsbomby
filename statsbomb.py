@@ -589,6 +589,166 @@ def pass_network(events, team_name, match_id, color):
     except Exception as e:
         st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
+
+def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup):
+    """New tab for player-specific statistics"""
+    with st.expander("Player Statistics", expanded=True):
+        # Combine all players from both teams
+        all_players = list(home_lineup) + list(away_lineup)
+        selected_player = st.selectbox("Select Player", all_players)
+        
+        # Determine player's team
+        player_team = home_team if selected_player in home_lineup else away_team
+        team_color = HOME_COLOR if player_team == home_team else AWAY_COLOR
+        
+        st.subheader(f"Performance Analysis: {selected_player}")
+        
+        # Create tabs for different stats
+        tab1, tab2, tab3 = st.tabs(["Heatmap", "Event Stats", "Passing Network"])
+        
+        with tab1:
+            plot_player_heatmap(events, selected_player, player_team, team_color)
+            
+        with tab2:
+            show_player_stats(events, selected_player)
+            
+        with tab3:
+            plot_player_passing_network(events, selected_player, player_team, team_color)
+
+def plot_player_heatmap(events, player_name, team_name, color):
+    """Plot heatmap of player's positions during the match"""
+    try:
+        # Get all events for this player
+        player_events = pd.concat([events[action_type] 
+                                 for action_type in events 
+                                 if 'player' in events[action_type].columns])
+        player_events = player_events[player_events['player'] == player_name]
+        
+        if player_events.empty:
+            st.warning(f"No position data available for {player_name}")
+            return
+            
+        # Extract locations
+        locations = player_events['location'].dropna()
+        if len(locations) == 0:
+            st.warning(f"No location data available for {player_name}")
+            return
+            
+        x = [loc[0] for loc in locations]
+        y = [loc[1] for loc in locations]
+        
+        # Create heatmap
+        fig, ax = create_pitch_figure(f"{player_name} Heatmap")
+        pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+        pitch.draw(ax=ax)
+        
+        # Create hexbin heatmap
+        hb = pitch.hexbin(x, y, ax=ax, cmap='Reds', gridsize=15, alpha=0.7)
+        
+        # Add colorbar
+        cb = fig.colorbar(hb, ax=ax, shrink=0.7)
+        cb.set_label('Activity Density', color=TEXT_COLOR)
+        cb.ax.yaxis.set_tick_params(color=TEXT_COLOR)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color=TEXT_COLOR)
+        
+        st.pyplot(fig)
+        
+    except Exception as e:
+        st.error(f"Heatmap error for {player_name}: {str(e)}")
+
+def show_player_stats(events, player_name):
+    """Display key statistics for selected player"""
+    try:
+        # Calculate basic stats
+        stats = {
+            "Shots": 0,
+            "Goals": 0,
+            "Passes": 0,
+            "Successful Passes": 0,
+            "Dribbles": 0,
+            "Tackles": 0,
+            "Interceptions": 0
+        }
+        
+        if 'shots' in events:
+            player_shots = events['shots'][events['shots']['player'] == player_name]
+            stats["Shots"] = len(player_shots)
+            stats["Goals"] = len(player_shots[player_shots['shot_outcome'] == 'Goal'])
+        
+        if 'passes' in events:
+            player_passes = events['passes'][events['passes']['player'] == player_name]
+            stats["Passes"] = len(player_passes)
+            stats["Successful Passes"] = len(player_passes[player_passes['pass_outcome'].isna()])
+        
+        if 'dribbles' in events:
+            stats["Dribbles"] = len(events['dribbles'][events['dribbles']['player'] == player_name])
+        
+        if 'interceptions' in events:
+            stats["Interceptions"] = len(events['interceptions'][events['interceptions']['player'] == player_name])
+        
+        # Display stats in columns
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Shots", stats["Shots"])
+            st.metric("Goals", stats["Goals"])
+            
+        with col2:
+            st.metric("Passes", stats["Passes"])
+            st.metric("Pass Accuracy", 
+                     f"{(stats['Successful Passes']/stats['Passes']*100 if stats['Passes'] > 0 else 0):.1f}%")
+            
+        with col3:
+            st.metric("Dribbles", stats["Dribbles"])
+            st.metric("Interceptions", stats["Interceptions"])
+            
+    except Exception as e:
+        st.error(f"Stats error for {player_name}: {str(e)}")
+
+def plot_player_passing_network(events, player_name, team_name, color):
+    """Plot passing network for individual player"""
+    try:
+        if 'passes' not in events:
+            st.warning("No passes data available")
+            return
+            
+        player_passes = events['passes'][events['passes']['player'] == player_name]
+        if player_passes.empty:
+            st.warning(f"No passes data for {player_name}")
+            return
+            
+        fig, ax = create_pitch_figure(f"{player_name} Passing Network")
+        pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
+        pitch.draw(ax=ax)
+        
+        # Plot passes
+        for _, pass_event in player_passes.iterrows():
+            if isinstance(pass_event['location'], list) and isinstance(pass_event['pass_end_location'], list):
+                start_x, start_y = pass_event['location'][0], pass_event['location'][1]
+                end_x, end_y = pass_event['pass_end_location'][0], pass_event['pass_end_location'][1]
+                
+                # Flip coordinates if away team
+                if team_name != pass_event['team']:
+                    start_x, start_y = 120 - start_x, 80 - start_y
+                    end_x, end_y = 120 - end_x, 80 - end_y
+                
+                # Successful vs unsuccessful passes
+                if pd.isna(pass_event['pass_outcome']):
+                    pitch.arrows(start_x, start_y, end_x, end_y, 
+                               ax=ax, color=color, width=2, headwidth=4, headlength=4)
+                else:
+                    pitch.arrows(start_x, start_y, end_x, end_y, 
+                               ax=ax, color='gray', width=1, headwidth=3, headlength=3, alpha=0.5)
+        
+        # Plot player position marker
+        avg_x = player_passes['location'].apply(lambda x: x[0]).mean()
+        avg_y = player_passes['location'].apply(lambda x: x[1]).mean()
+        pitch.scatter(avg_x, avg_y, ax=ax, s=300, color=color, edgecolors='black', linewidth=1)
+        
+        st.pyplot(fig)
+        
+    except Exception as e:
+        st.error(f"Passing network error for {player_name}: {str(e)}")
 # --------------------------
 # MAIN APP FUNCTION
 # --------------------------
@@ -697,8 +857,7 @@ def main():
             st.markdown("---")
             st.header("Match Visualizations")
             
-            tab1, tab2, tab3, tab4 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats"])
-            
+            tab1, tab2, tab3, tab4, tab5 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats", "👤 Player Stats"])            
             with tab1:
                 shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
                 goals(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
@@ -787,6 +946,8 @@ def main():
                         template=PLOTLY_TEMPLATE
                     ))
 
+                with tab5:
+                    player_stats_tab(events, home_team, away_team, home_lineup, away_lineup)
 
             # Add reset button
             if st.button('Analyze New Match'):
