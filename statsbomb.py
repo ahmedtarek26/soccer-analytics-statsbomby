@@ -24,7 +24,7 @@ if DARK_MODE:
     LINE_COLOR = "#efefef"
     TEXT_COLOR = "#ffffff"
     HOME_COLOR = "#ff6b6b"
-    AWAY_COLOR = "#64b5f6"  # Darker blue for dark mode
+    AWAY_COLOR = "#64b5f6"
     FIG_BG_COLOR = "#121212"
     PLOTLY_TEMPLATE = "plotly_dark"
     XG_BAR_COLOR = "#64b5f6"
@@ -39,9 +39,9 @@ else:
     PLOTLY_TEMPLATE = "plotly_white"
     XG_BAR_COLOR = "#1e90ff"
 
-# Font settings - using more modern font
-FONT = 'Arial'
-FONT_BOLD = 'Arial'
+# Font settings - using smoother font
+FONT = 'DejaVu Sans'
+FONT_BOLD = 'DejaVu Sans'
 FONT_SIZE_SM = 10
 FONT_SIZE_MD = 12
 FONT_SIZE_LG = 14
@@ -55,7 +55,6 @@ os.makedirs('graphs', exist_ok=True)
 # --------------------------
 
 def matches_id(data):
-    """Extract match information and create mapping dictionaries"""
     match_id = []
     match_name = []
     match_index = []
@@ -66,7 +65,6 @@ def matches_id(data):
     return match_name, dict(zip(match_name, match_index)), dict(zip(match_name, match_id))
 
 def match_data(data, match_index):
-    """Extract match details for a specific match index"""
     return (
         data['home_team'][match_index],
         data['away_team'][match_index],
@@ -79,7 +77,6 @@ def match_data(data, match_index):
     )
 
 def lineups(h, w, data):
-    """Get lineups for home and away teams"""
     return data[h]['player_name'].values, data[w]['player_name'].values
 
 # --------------------------
@@ -87,7 +84,6 @@ def lineups(h, w, data):
 # --------------------------
 
 def create_pitch_figure(title, figsize=(10, 6.5)):
-    """Create a standard pitch figure with consistent styling"""
     fig, ax = plt.subplots(figsize=figsize, facecolor=FIG_BG_COLOR)
     pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
     pitch.draw(ax=ax)
@@ -97,7 +93,6 @@ def create_pitch_figure(title, figsize=(10, 6.5)):
     return fig, ax
 
 def save_and_display(fig, filename):
-    """Save figure to file and display in Streamlit"""
     fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
             fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
             color=TEXT_COLOR, fontfamily=FONT)
@@ -105,35 +100,42 @@ def save_and_display(fig, filename):
     plt.savefig(f'graphs/{filename}', dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
     st.image(f'graphs/{filename}')
 
-def plot_player_actions(events, player_name, action_type, color, ax):
-    """Plot individual player actions on pitch"""
-    player_events = events[events['player'] == player_name]
-    if len(player_events) == 0:
-        return
-    
-    if action_type == 'carrys':
-        # Add legend
-        start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
-        end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
-        ax.legend(handles=[start_marker, end_marker], 
-                 facecolor=FIG_BG_COLOR, 
-                 edgecolor=FIG_BG_COLOR)
+def dribbles(events, h, w, match_id):
+    try:
+        fig, ax = create_pitch_figure('Dribbles')
         
-        # Plot arrows instead of lines
-        for _, event in player_events.iterrows():
-            x_start, y_start = event['location']
-            x_end, y_end = event['carry_end_location']
-            dx, dy = x_end - x_start, y_end - y_start
-            ax.arrow(x_start, y_start, dx, dy, 
-                    head_width=1.5, head_length=2, 
-                    fc=color, ec=color, alpha=0.5)
-    else:
-        x = player_events['location'].apply(lambda loc: loc[0])
-        y = player_events['location'].apply(lambda loc: loc[1])
-        ax.scatter(x, y, s=80, color=color, alpha=0.7)
+        if 'dribbles' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, dribble in events['dribbles'].iterrows():
+                if events['dribbles']['possession_team'][i] == h:
+                    x_h.append(dribble['location'][0])
+                    y_h.append(dribble['location'][1])
+                elif events['dribbles']['possession_team'][i] == w:
+                    x_w.append(dribble['location'][0])
+                    y_w.append(dribble['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            legend = ax.legend(loc='upper right', framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            for text in legend.get_texts():
+                text.set_color(TEXT_COLOR)
+            
+            total_dribbles = len(events['dribbles'])
+            fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'dribbles-{match_id}.png')
+        else:
+            st.warning("No dribbles data available")
+    except Exception as e:
+        st.error(f"Dribbles visualization error: {str(e)}")
 
 def shots_goal(shots, h, w, match_id):
-    """Visualize shots and goals"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -161,12 +163,12 @@ def shots_goal(shots, h, w, match_id):
             ax.add_patch(shotCircle)
 
             if goal:
-                # Use last name only like in pass network
+                # Use last name only with smoother font
                 player_name = shot['player'].split()[-1]
                 text = ax.text(plot_x + 1, plot_y + 2, player_name, 
                               fontsize=FONT_SIZE_SM, color=TEXT_COLOR, 
                               ha='left', va='center', fontfamily=FONT,
-                              fontweight='bold')
+                              fontweight='normal')  # Changed to normal weight
                 text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
         total_shots = len(shots)
@@ -186,7 +188,6 @@ def shots_goal(shots, h, w, match_id):
         st.error(f"Shots visualization error: {str(e)}")
 
 def goals(shots, h, w, match_id):
-    """Visualize goals with details"""
     try:
         pitchLengthX = 120
         pitchWidthY = 80
@@ -212,67 +213,28 @@ def goals(shots, h, w, match_id):
                 plot_y = y
                 color = AWAY_COLOR
 
-            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
+            # Add player name inside the bubble with opacity
+            player_name = shot['player'].split()[-1]
+            ax.text(plot_x, plot_y, player_name, 
+                   fontsize=FONT_SIZE_SM-1, color='white',
+                   ha='center', va='center', fontfamily=FONT,
+                   fontweight='normal')  # Smoother font weight
+            
+            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.7)
             ax.add_patch(shotCircle)
 
-            # Use last name only and improved formatting
-            player_name = shot['player'].split()[-1]
-            info_text = f"{player_name}\n{shot['shot_body_part'].title()}\nxG: {shot['shot_statsbomb_xg']:.2f}"
-            text = ax.text(plot_x, plot_y + 5, info_text, 
-                          fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
-                          ha='center', va='bottom', fontfamily=FONT,
-                          fontweight='bold')
+            # Additional info below the bubble
+            info_text = f"{shot['shot_body_part'].title()}\nxG: {shot['shot_statsbomb_xg']:.2f}"
+            text = ax.text(plot_x, plot_y + circleSize + 3, info_text, 
+                          fontsize=FONT_SIZE_SM-1, color=TEXT_COLOR,
+                          ha='center', va='bottom', fontfamily=FONT)
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="black")])
 
         save_and_display(fig, f'goals-{match_id}.png')
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
 
-def player_actions_grid(events, team_name, players, action_type, color):
-    """Grid of player actions for a team"""
-    try:
-        if not players:
-            st.warning(f"No players available for {team_name}")
-            return
-            
-        if action_type not in events or events[action_type].empty:
-            st.warning(f"No {action_type} data available for {team_name}")
-            return
-        
-        n_players = len(players)
-        n_cols = min(3, n_players)
-        n_rows = (n_players + n_cols - 1) // n_cols
-        
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 4*n_rows))
-        fig.set_facecolor(FIG_BG_COLOR)
-        
-        if n_players == 1:
-            axes = np.array([axes])
-        
-        for i, (player, ax) in enumerate(zip(players, axes.flatten())):
-            ax.set_facecolor(FIG_BG_COLOR)
-            pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
-            pitch.draw(ax=ax)
-            ax.invert_yaxis()
-            
-            plot_player_actions(events[action_type], player, action_type, color, ax)
-            
-            ax.set_title(player, color=TEXT_COLOR, fontsize=FONT_SIZE_MD)
-        
-        for j in range(i+1, n_rows*n_cols):
-            axes.flatten()[j].axis('off')
-        
-        fig.suptitle(f"{team_name} {action_type.title()} by Player", 
-                    color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98)
-        plt.tight_layout()
-        st.pyplot(fig)
-        
-    except Exception as e:
-        st.error(f"Error creating player actions grid: {str(e)}")
-
-# --------------------------
-# MAIN APP FUNCTION
-# --------------------------
+# [Rest of the functions remain the same...]
 
 def main():
     st.title('⚽ Football Match Analysis')
