@@ -333,7 +333,7 @@ def goals(shots, h, w, match_id):
         # Add thin vertical colorbar on the right side
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=15)  # Thinner bar
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=8)  # Thinner bar
         cbar.set_label('Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2, labelpad=2)
         cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
@@ -355,7 +355,7 @@ def goals(shots, h, w, match_id):
                                    label=f"Players:\n{player_legend}",
                                    markersize=0))
         
-        ax.legend(handles=legend_elements, loc='upper right', 
+        ax.legend(handles=legend_elements, loc='upper left', 
                  facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
                  fontsize=FONT_SIZE_SM-2, handlelength=1.5)
         
