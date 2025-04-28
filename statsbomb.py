@@ -671,7 +671,7 @@ def main():
                 if 'shots' in events:
                     shots_df = events['shots'].groupby(['player', 'team']).size().reset_index(name='count')
                     st.plotly_chart(px.bar(shots_df, 
-                                        x='player', y='count', 
+                                        y='player', x='count', 
                                         color='team',
                                         color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
                                         title="Shots by Player", 
@@ -680,7 +680,7 @@ def main():
                 if 'passes' in events:
                     passes_df = events['passes'].groupby(['player', 'team']).size().reset_index(name='count')
                     st.plotly_chart(px.bar(passes_df, 
-                                        x='player', y='count', 
+                                        y='player', x='count', 
                                         color='team',
                                         color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
                                         title="Passes by Player", 
@@ -689,7 +689,7 @@ def main():
                 if 'foul_committeds' in events:
                     fouls_df = events['foul_committeds'].groupby(['player', 'team']).size().reset_index(name='count')
                     st.plotly_chart(px.bar(fouls_df, 
-                                        x='player', y='count', 
+                                        y='player', x='count', 
                                         color='team',
                                         color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
                                         title="Fouls Committed", 
