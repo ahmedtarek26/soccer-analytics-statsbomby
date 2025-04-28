@@ -757,6 +757,12 @@ def main():
     st.title('⚽ Football Match Analysis')
     
     try:
+        # Initialize session state variables if they don't exist
+        if 'analyzed' not in st.session_state:
+            st.session_state.analyzed = False
+        if 'match_data' not in st.session_state:
+            st.session_state.match_data = None
+        
         # Load competitions data
         com = sb.competitions()
         com_dict = dict(zip(com['competition_name'], com['competition_id']))
@@ -790,9 +796,9 @@ def main():
                 matches_names, matches_idx, matches_id_dict = matches_id(data)
                 match = st.selectbox('Select the match', matches_names)
                 
-                if st.button('Analyze Match') or st.session_state.get('analyzed', False):
+                if st.button('Analyze Match') or st.session_state.analyzed:
                     st.session_state.analyzed = True
-                    if st.session_state.get('match_data') is None:
+                    if st.session_state.match_data is None or st.session_state.match_data.get('match_id') != matches_id_dict[match]:
                         # Load and process the data only if it's not already in session state
                         home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
                             data, matches_idx[match])
@@ -832,150 +838,143 @@ def main():
                         home_lineup = match_data_dict['home_lineup']
                         away_lineup = match_data_dict['away_lineup']
                         events = match_data_dict['events']
-            
-            # Match header
-            st.markdown(f"""
-                <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
-                        padding:1.5rem;border-radius:12px;margin-bottom:2rem;color:white;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="text-align:center;flex:1;">
-                            <h2 style="color:white;margin-bottom:0;">{home_team}</h2>
-                            <h1 style="color:white;margin-top:0;">{home_score}</h1>
-                        </div>
-                        <div style="text-align:center;flex:1;">
-                            <h3 style="color:white;">vs</h3>
-                            <p style="color:white;margin-bottom:0;">{comp_stats}</p>
-                            <p style="color:white;margin-top:0;">🏟️ {stadium}</p>
-                        </div>
-                        <div style="text-align:center;flex:1;">
-                            <h2 style="color:white;margin-bottom:0;">{away_team}</h2>
-                            <h1 style="color:white;margin-top:0;">{away_score}</h1>
-                        </div>
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-            
-            # Lineups
-            col1, col2, col3 = st.columns([2, 1, 2])
-            
-            with col1:
-                with st.container():
-                    st.subheader(f'{home_team} Lineup')
-                    st.markdown(f"**Manager:** {home_manager}")
-                    for player in home_lineup:
-                        st.markdown(f"- {player}")
-            
-            with col3:
-                with st.container():
-                    st.subheader(f'{away_team} Lineup')
-                    st.markdown(f"**Manager:** {away_manager}")
-                    for player in away_lineup:
-                        st.markdown(f"- {player}")
-
-            # Visualizations
-            st.markdown("---")
-            st.header("Match Visualizations")
-            
-            tab1, tab2, tab3, tab4, tab5 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats", "👤 Player Stats"])            
-            with tab1:
-                shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
-                goals(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
-                
-                if 'dribbles' in events:
-                    st.subheader("Dribbles")
-                    dribbles(events, home_team, away_team, match_id)
-                
-                st.subheader("Pass Networks")
-                col1, col2 = st.columns(2)
-                with col1:
-                    pass_network(events, home_team, match_id, HOME_COLOR)
-                with col2:
-                    pass_network(events, away_team, match_id, AWAY_COLOR)
-            
-            with tab2:
-                defensive_actions(events, home_team, away_team, match_id, 'foul_committeds')
-                defensive_actions(events, home_team, away_team, match_id, 'foul_wons')
-                defensive_actions(events, home_team, away_team, match_id, 'interceptions')
-                defensive_actions(events, home_team, away_team, match_id, 'dispossesseds')
-                defensive_actions(events, home_team, away_team, match_id, 'miscontrols')
-            
-            with tab3:
-                st.subheader("Individual Player Actions")
-                
-                action_type = st.selectbox("Select action type", 
-                                        ['carrys', 'passes', 'shots', 'dribbles'])
-                
-                st.subheader(f"{home_team} Players")
-                player_actions_grid(events, home_team, list(home_lineup), action_type, HOME_COLOR)
-                
-                st.subheader(f"{away_team} Players")
-                player_actions_grid(events, away_team, list(away_lineup), action_type, AWAY_COLOR)
-            
-            with tab4:
-                st.subheader("Match Statistics")
-                
-                if 'shots' in events:
-                    shots_df = events['shots'].copy()
-                    # Extract last names
-                    shots_df['player_lastname'] = shots_df['player'].apply(lambda name: name.split()[-1])
                     
-                    # Group by last name and team
-                    shots_summary = shots_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+                    # Match header
+                    st.markdown(f"""
+                        <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
+                                padding:1.5rem;border-radius:12px;margin-bottom:2rem;color:white;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;">
+                                <div style="text-align:center;flex:1;">
+                                    <h2 style="color:white;margin-bottom:0;">{home_team}</h2>
+                                    <h1 style="color:white;margin-top:0;">{home_score}</h1>
+                                </div>
+                                <div style="text-align:center;flex:1;">
+                                    <h3 style="color:white;">vs</h3>
+                                    <p style="color:white;margin-bottom:0;">{comp_stats}</p>
+                                    <p style="color:white;margin-top:0;">🏟️ {stadium}</p>
+                                </div>
+                                <div style="text-align:center;flex:1;">
+                                    <h2 style="color:white;margin-bottom:0;">{away_team}</h2>
+                                    <h1 style="color:white;margin-top:0;">{away_score}</h1>
+                                </div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Lineups
+                    col1, col2, col3 = st.columns([2, 1, 2])
+                    
+                    with col1:
+                        with st.container():
+                            st.subheader(f'{home_team} Lineup')
+                            st.markdown(f"**Manager:** {home_manager}")
+                            for player in home_lineup:
+                                st.markdown(f"- {player}")
+                    
+                    with col3:
+                        with st.container():
+                            st.subheader(f'{away_team} Lineup')
+                            st.markdown(f"**Manager:** {away_manager}")
+                            for player in away_lineup:
+                                st.markdown(f"- {player}")
 
-                    st.plotly_chart(px.bar(
-                        shots_summary,
-                        y='player_lastname', 
-                        x='count', 
-                        color='team',
-                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                        title="Shots by Player (Last Names)", 
-                        template=PLOTLY_TEMPLATE
-                    ))
+                    # Visualizations
+                    st.markdown("---")
+                    st.header("Match Visualizations")
+                    
+                    tab1, tab2, tab3, tab4, tab5 = st.tabs(["⚽ Attack", "🛡️ Defense", "👤 Player Actions", "📊 Stats", "👤 Player Stats"])
+                    
+                    with tab1:
+                        shots_goal(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
+                        goals(events.get('shots', pd.DataFrame()), home_team, away_team, match_id)
+                        
+                        if 'dribbles' in events:
+                            st.subheader("Dribbles")
+                            dribbles(events, home_team, away_team, match_id)
+                        
+                        st.subheader("Pass Networks")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            pass_network(events, home_team, match_id, HOME_COLOR)
+                        with col2:
+                            pass_network(events, away_team, match_id, AWAY_COLOR)
+                    
+                    with tab2:
+                        defensive_actions(events, home_team, away_team, match_id, 'foul_committeds')
+                        defensive_actions(events, home_team, away_team, match_id, 'foul_wons')
+                        defensive_actions(events, home_team, away_team, match_id, 'interceptions')
+                        defensive_actions(events, home_team, away_team, match_id, 'dispossesseds')
+                        defensive_actions(events, home_team, away_team, match_id, 'miscontrols')
+                    
+                    with tab3:
+                        st.subheader("Individual Player Actions")
+                        
+                        action_type = st.selectbox("Select action type", 
+                                                ['carrys', 'passes', 'shots', 'dribbles'])
+                        
+                        st.subheader(f"{home_team} Players")
+                        player_actions_grid(events, home_team, list(home_lineup), action_type, HOME_COLOR)
+                        
+                        st.subheader(f"{away_team} Players")
+                        player_actions_grid(events, away_team, list(away_lineup), action_type, AWAY_COLOR)
+                    
+                    with tab4:
+                        st.subheader("Match Statistics")
+                        
+                        if 'shots' in events:
+                            shots_df = events['shots'].copy()
+                            shots_df['player_lastname'] = shots_df['player'].apply(lambda name: name.split()[-1])
+                            shots_summary = shots_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+                            st.plotly_chart(px.bar(
+                                shots_summary,
+                                y='player_lastname', 
+                                x='count', 
+                                color='team',
+                                color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                title="Shots by Player", 
+                                template=PLOTLY_TEMPLATE
+                            ))
+                        
+                        if 'passes' in events:
+                            passes_df = events['passes'].copy()
+                            passes_df['player_lastname'] = passes_df['player'].apply(lambda name: name.split()[-1])
+                            passes_summary = passes_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+                            st.plotly_chart(px.bar(
+                                passes_summary, 
+                                y='player_lastname', 
+                                x='count', 
+                                color='team',
+                                color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                title="Passes by Player", 
+                                template=PLOTLY_TEMPLATE
+                            ))
 
+                        if 'foul_committeds' in events:
+                            fouls_df = events['foul_committeds'].copy()
+                            fouls_df['player_lastname'] = fouls_df['player'].apply(lambda name: name.split()[-1])
+                            fouls_summary = fouls_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
+                            st.plotly_chart(px.bar(
+                                fouls_summary, 
+                                y='player_lastname', 
+                                x='count', 
+                                color='team',
+                                color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
+                                title="Fouls Committed", 
+                                template=PLOTLY_TEMPLATE
+                            ))
+                    
+                    with tab5:
+                        player_stats_tab(events, home_team, away_team, home_lineup, away_lineup)
+
+                    # Add reset button
+                    if st.button('Analyze New Match'):
+                        st.session_state.analyzed = False
+                        st.session_state.match_data = None
+                        st.experimental_rerun()
+                        
+            except Exception as e:
+                st.warning(f"Please select a valid season for this competition. Error: {str(e)}")
+                st.stop()
                 
-                if 'passes' in events:
-                    passes_df = events['passes'].copy()
-                    passes_df['player_lastname'] = passes_df['player'].apply(lambda name: name.split()[-1])
-
-                    passes_summary = passes_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
-
-                    st.plotly_chart(px.bar(
-                        passes_summary, 
-                        y='player_lastname', 
-                        x='count', 
-                        color='team',
-                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                        title="Passes by Player (Last Names)", 
-                        template=PLOTLY_TEMPLATE
-                    ))
-
-                if 'foul_committeds' in events:
-                    fouls_df = events['foul_committeds'].copy()
-                    fouls_df['player_lastname'] = fouls_df['player'].apply(lambda name: name.split()[-1])
-
-                    fouls_summary = fouls_df.groupby(['player_lastname', 'team']).size().reset_index(name='count')
-
-                    st.plotly_chart(px.bar(
-                        fouls_summary, 
-                        y='player_lastname', 
-                        x='count', 
-                        color='team',
-                        color_discrete_map={home_team: HOME_COLOR, away_team: AWAY_COLOR},
-                        title="Fouls Committed by Player (Last Names)", 
-                        template=PLOTLY_TEMPLATE
-                    ))
-
-                with tab5:
-                    player_stats_tab(events, home_team, away_team, home_lineup, away_lineup)
-
-            # Add reset button
-            if st.button('Analyze New Match'):
-                st.session_state.analyzed = False
-                st.session_state.match_data = None
-                st.experimental_rerun()
-
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
-
-if __name__ == "__main__":
-    main()
