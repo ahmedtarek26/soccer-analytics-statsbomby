@@ -285,9 +285,9 @@ def goals(shots, h, w, match_id):
             player_name = shot['player'].split()[-1]
             body_part = 'R' if shot['shot_body_part'] == 'Right Foot' else 'L' if shot['shot_body_part'] == 'Left Foot' else shot['shot_body_part'][0]
             info_text = f"{player_name}\n{body_part}"
-            text = ax.text(plot_x, plot_y + 2, info_text, 
+            text = ax.text(plot_x, plot_y, info_text, 
                           fontsize=FONT_SIZE_MD,
-                          color=color,
+                          color='white',
                           ha='center', va='bottom')
             text.set_path_effects([path_effects.withStroke(linewidth=2, foreground="black")])
 
