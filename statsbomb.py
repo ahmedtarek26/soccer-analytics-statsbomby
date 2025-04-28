@@ -251,6 +251,43 @@ def defensive_actions(events, h, w, match_id, action_type):
             st.warning(f"No {action_type.replace('_', ' ')} data available")
     except Exception as e:
         st.error(f"{action_type} visualization error: {str(e)}")
+        
+def dribbles(events, h, w, match_id):
+    """Visualize dribbles for both teams"""
+    try:
+        fig, ax = create_pitch_figure('Dribbles')
+        
+        if 'dribbles' in events:
+            x_h = []
+            y_h = []
+            x_w = []
+            y_w = []
+            
+            for i, dribble in events['dribbles'].iterrows():
+                if events['dribbles']['possession_team'][i] == h:
+                    x_h.append(dribble['location'][0])
+                    y_h.append(dribble['location'][1])
+                elif events['dribbles']['possession_team'][i] == w:
+                    x_w.append(dribble['location'][0])
+                    y_w.append(dribble['location'][1])
+            
+            ax.scatter(x_h, y_h, s=80, c=HOME_COLOR, alpha=.7, label=h)
+            ax.scatter(x_w, y_w, s=80, c=AWAY_COLOR, alpha=.7, label=w)
+            
+            # Improved legend positioning
+            legend = ax.legend(loc='upper right', framealpha=0.8)
+            legend.get_frame().set_facecolor(FIG_BG_COLOR)
+            for text in legend.get_texts():
+                text.set_color(TEXT_COLOR)
+            
+            total_dribbles = len(events['dribbles'])
+            fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+            save_and_display(fig, f'dribbles-{match_id}.png')
+        else:
+            st.warning("No dribbles data available")
+    except Exception as e:
+        st.error(f"Dribbles visualization error: {str(e)}")
 
 def player_actions_grid(events, team_name, players, action_type, color):
     """Create a grid of subplots showing individual player actions"""
