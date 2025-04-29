@@ -12,8 +12,8 @@ from matplotlib.lines import Line2D
 import os
 import matplotlib.patheffects as path_effects
 from matplotlib.patches import FancyArrowPatch
+from sklearn.cluster import KMeans
 import random
-import uuid
 
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
@@ -225,7 +225,33 @@ def shots_goal(shots, h, w, match_id):
             text.set_color(TEXT_COLOR)
         
         save_and_display(fig, f'shots-{match_id}.png')
-
+        
+        # Analytical Description for Shots
+        home_shots = shots[shots['team'] == h].shape[0]
+        away_shots = shots[shots['team'] == w].shape[0]
+        home_goals = shots[(shots['team'] == h) & (shots['shot_outcome'] == 'Goal')].shape[0]
+        away_goals = shots[(shots['team'] == w) & (shots['shot_outcome'] == 'Goal')].shape[0]
+        top_shooter = shots['player'].value_counts().idxmax() if not shots.empty else "N/A"
+        
+        description = f"{h} took {home_shots} shots, scoring {home_goals} goals, while {w} had {away_shots} shots and scored {away_goals}."
+        if home_shots > away_shots:
+            description += f" {h} was more aggressive in attack."
+        elif away_shots > home_shots:
+            description += f" {w} created more shooting opportunities."
+        else:
+            description += " Both teams had an equal number of shots."
+        if top_shooter != "N/A":
+            description += f" {top_shooter} was the most active shooter."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Shots Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Shots visualization error: {str(e)}")
 
@@ -328,6 +354,31 @@ def goals(shots, h, w, match_id):
                  fontsize=FONT_SIZE_SM-2, handlelength=1.5)
         
         save_and_display(fig, f'goals-{match_id}.png')
+        
+        # Analytical Description for Goals
+        home_goals = goals_df[goals_df['team'] == h].shape[0]
+        away_goals = goals_df[goals_df['team'] == w].shape[0]
+        top_scorer = goals_df['player'].value_counts().idxmax() if not goals_df.empty else "N/A"
+        
+        description = f"{h} scored {home_goals} goals, while {w} scored {away_goals}."
+        if home_goals > away_goals:
+            description += f" {h} was more clinical in front of goal."
+        elif away_goals > home_goals:
+            description += f" {w} capitalized better on their chances."
+        else:
+            description += " Both teams were equally effective in scoring."
+        if top_scorer != "N/A":
+            description += f" {top_scorer} was the key goal scorer."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Goals Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Goals visualization error: {str(e)}")
 
@@ -361,6 +412,26 @@ def dribbles(events, h, w, match_id):
             fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
                     fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
             save_and_display(fig, f'dribbles-{match_id}.png')
+            
+            # Analytical Description for Dribbles
+            home_dribbles = len(x_h)
+            away_dribbles = len(x_w)
+            description = f"{h} attempted {home_dribbles} dribbles, while {w} had {away_dribbles}."
+            if home_dribbles > away_dribbles:
+                description += f" {h} was more aggressive in taking on defenders."
+            elif away_dribbles > home_dribbles:
+                description += f" {w} showed greater intent to beat players."
+            else:
+                description += " Both teams attempted an equal number of dribbles."
+            
+            st.markdown(
+                f"""
+                <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                            padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                    <strong>Dribbles Analysis:</strong> {description}
+                </div>
+                """, unsafe_allow_html=True
+            )
         else:
             st.warning("No dribbles data available")
     except Exception as e:
@@ -395,6 +466,26 @@ def defensive_actions(events, h, w, match_id, action_type):
             fig_text(s=f'Total: {total_actions}', x=0.15, y=0.85,
                     fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
             save_and_display(fig, f'{action_type}-{match_id}.png')
+            
+            # Analytical Description for Defensive Actions
+            home_actions = df[df['possession_team'] == h].shape[0]
+            away_actions = df[df['possession_team'] == w].shape[0]
+            description = f"{h} committed {home_actions} {action_type.replace('_', ' ')}, while {w} had {away_actions}."
+            if home_actions > away_actions:
+                description += f" {h} showed greater defensive intensity."
+            elif away_actions > home_actions:
+                description += f" {w} was more active in {action_type.replace('_', ' ')}."
+            else:
+                description += f" Both teams had an equal number of {action_type.replace('_', ' ')}."
+            
+            st.markdown(
+                f"""
+                <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                            padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                    <strong>{title_map[action_type]} Analysis:</strong> {description}
+                </div>
+                """, unsafe_allow_html=True
+            )
         else:
             st.warning(f"No {action_type.replace('_', ' ')} data available")
     except Exception as e:
@@ -440,6 +531,19 @@ def player_actions_grid(events, team_name, players, action_type, color):
         plt.tight_layout()
         st.pyplot(fig)
         
+        # Analytical Description for Player Actions
+        top_player = events[action_type][events[action_type]['player'].isin(players)]['player'].value_counts().idxmax() if not events[action_type].empty else "N/A"
+        description = f"{team_name}'s players were active in {action_type}, with {top_player} leading the way."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Player Actions Analysis ({action_type}):</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Error creating player actions grid: {str(e)}")
 
@@ -449,7 +553,7 @@ def player_actions_grid(events, team_name, players, action_type, color):
 
 def infer_formation(avg_locations):
     """
-    Infer team formation based on average player locations.
+    Infer team formation using k-means clustering on player y-positions.
     
     Args:
         avg_locations (pd.DataFrame): DataFrame with columns 'x', 'y' for player positions.
@@ -458,15 +562,22 @@ def infer_formation(avg_locations):
         str: Inferred formation (e.g., '4-3-3') or 'Unknown'.
     """
     try:
-        # Define pitch zones based on y-coordinate (0 to 120)
-        def_zone = avg_locations[avg_locations['y'] < 40]  # Defensive third
-        mid_zone = avg_locations[(avg_locations['y'] >= 40) & (avg_locations['y'] < 80)]  # Midfield
-        att_zone = avg_locations[avg_locations['y'] >= 80]  # Attacking third
-
-        def_count = len(def_zone)
-        mid_count = len(mid_zone)
-        att_count = len(att_zone)
-
+        if len(avg_locations) < 3:
+            return 'Unknown'
+        
+        # Use k-means to cluster players into 3 lines: defense, midfield, attack
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
+        
+        # Sort clusters by mean y-position (defense to attack)
+        cluster_centers = kmeans.cluster_centers_.flatten()
+        sorted_clusters = np.argsort(cluster_centers)
+        
+        # Count players in each line
+        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
+        mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
+        att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
+        
         # Map to common formations
         formation_map = {
             (4, 3, 3): '4-3-3',
@@ -475,9 +586,9 @@ def infer_formation(avg_locations):
             (5, 3, 2): '5-3-2',
             (3, 4, 3): '3-4-3'
         }
-
+        
         formation_key = (def_count, mid_count, att_count)
-        return formation_map.get(formation_key, 'Unknown')
+        return formation_map.get(formation_key, f"{def_count}-{mid_count}-{att_count}")
     except Exception as e:
         return 'Unknown'
 
@@ -784,6 +895,25 @@ def plot_player_heatmap(events, player_name, team_name, color):
         
         st.pyplot(fig)
         
+        # Analytical Description for Heatmap
+        avg_x = np.mean(x)
+        if avg_x < 40:
+            position = "defensive areas"
+        elif avg_x < 80:
+            position = "midfield"
+        else:
+            position = "attacking zones"
+        description = f"{player_name} was most active in {position}."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Heatmap Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Heatmap error for {player_name}: {str(e)}")
 
@@ -830,6 +960,25 @@ def show_player_stats(events, player_name):
             st.metric("Dribbles", stats["Dribbles"])
             st.metric("Interceptions", stats["Interceptions"])
             
+        # Analytical Description for Player Stats
+        pass_accuracy = (stats['Successful Passes'] / stats['Passes'] * 100) if stats['Passes'] > 0 else 0
+        description = f"{player_name} attempted {stats['Passes']} passes with {pass_accuracy:.1f}% accuracy."
+        if pass_accuracy > 85:
+            description += " They were highly accurate in their passing."
+        elif pass_accuracy < 70:
+            description += " Their passing accuracy was below average."
+        else:
+            description += " Their passing was solid but not exceptional."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Player Stats Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Stats error for {player_name}: {str(e)}")
 
@@ -877,6 +1026,27 @@ def plot_player_passing_network(events, player_name, team_name, color):
         ax.legend(handles=legend_elements, loc='upper left')
 
         st.pyplot(fig)
+        
+        # Analytical Description for Player Passing Network
+        total_passes = len(player_passes)
+        successful_passes = len(player_passes[player_passes['pass_outcome'].isna()])
+        pass_accuracy = (successful_passes / total_passes * 100) if total_passes > 0 else 0
+        description = f"{player_name} attempted {total_passes} passes with {pass_accuracy:.1f}% accuracy."
+        if pass_accuracy > 85:
+            description += " They were highly accurate in their passing."
+        elif pass_accuracy < 70:
+            description += " Their passing accuracy was below average."
+        else:
+            description += " Their passing was solid but not exceptional."
+        
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Passing Network Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
         
     except Exception as e:
         st.error(f"Passing network error for {player_name}: {str(e)}")
