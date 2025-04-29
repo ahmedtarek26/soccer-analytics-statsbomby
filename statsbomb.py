@@ -751,10 +751,11 @@ def plot_player_passing_network(events, player_name, team_name, color):
         # Add legend
         legend_elements = [
             Line2D([0], [0], color=color, lw=2, label='Successful Pass'),
-            Line2D([0], [0], color='gray', lw=2, alpha=0.5, label='Unsuccessful Pass')
-
+            Line2D([0], [0], color='gray', lw=2, alpha=0.5, label='Unsuccessful Pass'),
+            Line2D([0], [0], marker='o', color=color, label='Player Position',
+                   markerfacecolor=color, markersize=10, alpha=1)
         ]
-        ax.legend(handles=legend_elements, loc='upper right')
+        ax.legend(handles=legend_elements, loc='upper left')
 
         st.pyplot(fig)
         
