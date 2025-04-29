@@ -12,15 +12,6 @@
 
 First you can choose the competition you want to analyize, the season then the match then click on the button 
 
-![](images/img.png)
+![](images/image.png)
 
-the app will provide match stats like shots , dribbles , carrys for each player , fouls , interceptions, dispossessed, miscontrols and so on
-
-<span style="color: red;">Be careful </span> when you choose the season name find the right season name to avoid any error
-
-![](images/img_1.png)
-
-
-and here it's after choosing the right season name
-
-![](images/img_2.png)
+The app will provide match stats like shots , dribbles , pass networks ,  carrys for each player , fouls , interceptions, dispossessed, miscontrols and so on
