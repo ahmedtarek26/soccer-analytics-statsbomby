@@ -8,6 +8,8 @@ from statsbombpy import sb
 from mplsoccer.pitch import Pitch
 from highlight_text import fig_text
 import plotly.express as px
+from matplotlib.lines import Line2D
+
 import os
 import matplotlib.patheffects as path_effects
 from matplotlib.patches import FancyArrowPatch
@@ -745,6 +747,15 @@ def plot_player_passing_network(events, player_name, team_name, color):
         avg_y = player_passes['location'].apply(lambda x: x[1]).mean()
         pitch.scatter(avg_x, avg_y, ax=ax, s=300, color=color, edgecolors='black', linewidth=1)
         
+        
+        # Add legend
+        legend_elements = [
+            Line2D([0], [0], color=color, lw=2, label='Successful Pass'),
+            Line2D([0], [0], color='gray', lw=2, alpha=0.5, label='Unsuccessful Pass')
+
+        ]
+        ax.legend(handles=legend_elements, loc='upper right')
+
         st.pyplot(fig)
         
     except Exception as e:
