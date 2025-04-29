@@ -9,10 +9,11 @@ from mplsoccer.pitch import Pitch
 from highlight_text import fig_text
 import plotly.express as px
 from matplotlib.lines import Line2D
-
 import os
 import matplotlib.patheffects as path_effects
 from matplotlib.patches import FancyArrowPatch
+import random
+import uuid
 
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
@@ -114,14 +115,6 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         return
     
     if action_type == 'carrys':
-        # # Add legend
-        # start_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='o', label='Start')
-        # end_marker = ax.scatter([], [], s=50, color=color, alpha=0.7, marker='x', label='End')
-        # ax.legend(handles=[start_marker, end_marker], 
-        #          facecolor=FIG_BG_COLOR, 
-        #          edgecolor=FIG_BG_COLOR)
-        
-        # Plot arrows instead of lines
         for _, event in player_events.iterrows():
             x_start, y_start = event['location']
             x_end, y_end = event['carry_end_location']
@@ -135,49 +128,39 @@ def plot_player_actions(events, player_name, action_type, color, ax):
         ax.scatter(x, y, s=80, color=color, alpha=0.7)
 
 def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
-    """
-    Creates an Opta-style xG visualization
-    """
     try:
         player_shots = shots[shots['player'] == player_name]
         if player_shots.empty:
             st.warning(f"No shots data for {player_name}")
             return
 
-        # Calculate metrics
         goals = player_shots[player_shots['shot_outcome'] == 'Goal'].shape[0]
         xg = player_shots['shot_statsbomb_xg'].sum().round(1)
         total_shots = player_shots.shape[0]
         xg_per_shot = (xg / total_shots).round(2) if total_shots > 0 else 0
         games = player_shots['match_id'].nunique()
 
-        # Create figure
         fig, ax = plt.subplots(figsize=(8, 3), facecolor='white')
         fig.subplots_adjust(left=0.05, right=0.95, top=0.8, bottom=0.2)
 
-        # Main horizontal bars
         bar_height = 0.4
         goal_bar = ax.barh([''], [goals], height=bar_height, color=XG_BAR_COLOR, alpha=0.9)
         xg_bar = ax.barh([''], [xg], height=bar_height, color=XG_BAR_COLOR, alpha=0.4)
 
-        # Add value labels inside bars
         ax.text(goals/2, 0, f"{goals}", 
                ha='center', va='center', color='white', fontweight='bold', fontsize=12)
         ax.text(xg/2, 0, "", 
                ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
 
-        # Set x-axis limit
         max_value = max(goals, xg)
         ax.set_xlim(0, max_value * 1.3)
 
-        # Remove spines and ticks
         for spine in ['top', 'right', 'left', 'bottom']:
             ax.spines[spine].set_visible(False)
         ax.tick_params(axis='both', which='both', length=0)
         ax.set_xticks([])
         ax.set_yticks([])
 
-        # Add metrics on right side
         metrics_text = (
             f"{xg} xG\n"
             f"{total_shots} shots\n"
@@ -187,7 +170,6 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
         ax.text(max_value * 1.15, 0, metrics_text, 
                ha='left', va='center', linespacing=1.8)
 
-        # Add xG scale indicator
         ax.text(0.02, -0.8, "Low xG", transform=ax.transAxes, 
                fontsize=9, color='#666666')
         ax.text(0.98, -0.8, "High xG", transform=ax.transAxes, 
@@ -195,7 +177,6 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
         ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
                color='#666666', linewidth=2, clip_on=False)
 
-        # Add title with team color
         player_color = HOME_COLOR if team_name == home_team else AWAY_COLOR
         fig.text(0.05, 0.9, player_name, 
                 fontsize=16, fontweight='bold', ha='left', color=player_color)
@@ -232,11 +213,9 @@ def shots_goal(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=1 if goal else 0.2)
             ax.add_patch(shotCircle)
 
-  
         total_shots = len(shots)
         fig_text(s=f'Total Shots: {total_shots}', x=0.15, y=0.85, 
                 fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
-    
         
         home_patch = plt.Circle((0,0), 1, color=HOME_COLOR, label=h)
         away_patch = plt.Circle((0,0), 1, color=AWAY_COLOR, label=w)
@@ -261,18 +240,15 @@ def goals(shots, h, w, match_id):
             st.warning("No goals data available")
             return
 
-        # Create red colormap from light to dark red
         cmap = plt.cm.Reds
         
-        # Create legend entries for player names
         legend_entries = {}
         
-        # Plot each goal with color based on time
         for i, shot in goals_df.iterrows():
             x = shot['location'][0]
             y = shot['location'][1]
             team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8  # Keep size based on xG
+            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
             
             if team_name == h:
                 plot_x = x
@@ -283,19 +259,15 @@ def goals(shots, h, w, match_id):
                 plot_y = y
                 team_color = AWAY_COLOR
             
-            # Color based on time scored (normalized 0-1)
             time_norm = shot['minute'] / (goals_df['minute'].max() + 1)
             color = cmap(time_norm)
             
-            # Plot the goal bubble
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
             ax.add_patch(shotCircle)
             
-            # Handle player name display
             player_name = shot['player'].split()[-1]
             text_color = 'black' if time_norm < 0.5 else 'white'
             
-            # For very small bubbles (xG < 0.1), use first initial only
             if shot['shot_statsbomb_xg'] < 0.1:
                 display_text = player_name[0]
                 fontsize = FONT_SIZE_SM-2
@@ -308,10 +280,8 @@ def goals(shots, h, w, match_id):
                    ha='center', va='center', fontfamily=FONT,
                    fontweight='bold')
             
-            # Store full name for legend
             legend_entries[player_name[0]] = player_name
             
-            # Add foot information
             foot = shot['shot_body_part']
             if foot == 'Left Foot':
                 foot_text = 'L'
@@ -332,16 +302,13 @@ def goals(shots, h, w, match_id):
                    bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
                             boxstyle='round,pad=0.2', alpha=0.7))
 
-        # Add thin vertical colorbar on the right side
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=20)  # Thinner bar
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=20)
         cbar.set_label('Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2, labelpad=2)
         cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
-        # Create combined legend
-        from matplotlib.lines import Line2D
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label='Left Foot (L)',
                   markerfacecolor='gray', markersize=6),
@@ -351,7 +318,6 @@ def goals(shots, h, w, match_id):
                   markerfacecolor='gray', markersize=6)
         ]
         
-        # Add player initials mapping to legend
         player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
         legend_elements.append(Line2D([0], [0], marker='', color='w', 
                                    label=f"Players:\n{player_legend}",
@@ -471,15 +437,177 @@ def player_actions_grid(events, team_name, players, action_type, color):
         for j in range(i+1, n_rows*n_cols):
             axes.flatten()[j].axis('off')
         
-        # fig.suptitle(f"{team_name} {action_type.title()} by Player", 
-        #             color=TEXT_COLOR, fontsize=FONT_SIZE_LG, y=0.98)
         plt.tight_layout()
         st.pyplot(fig)
         
     except Exception as e:
         st.error(f"Error creating player actions grid: {str(e)}")
 
+# --------------------------
+# PASS NETWORK ENHANCEMENTS
+# --------------------------
+
+def infer_formation(avg_locations):
+    """
+    Infer team formation based on average player locations.
+    
+    Args:
+        avg_locations (pd.DataFrame): DataFrame with columns 'x', 'y' for player positions.
+    
+    Returns:
+        str: Inferred formation (e.g., '4-3-3') or 'Unknown'.
+    """
+    try:
+        # Define pitch zones based on y-coordinate (0 to 120)
+        def_zone = avg_locations[avg_locations['y'] < 40]  # Defensive third
+        mid_zone = avg_locations[(avg_locations['y'] >= 40) & (avg_locations['y'] < 80)]  # Midfield
+        att_zone = avg_locations[avg_locations['y'] >= 80]  # Attacking third
+
+        def_count = len(def_zone)
+        mid_count = len(mid_zone)
+        att_count = len(att_zone)
+
+        # Map to common formations
+        formation_map = {
+            (4, 3, 3): '4-3-3',
+            (4, 2, 4): '4-2-3-1',
+            (4, 4, 2): '4-4-2',
+            (5, 3, 2): '5-3-2',
+            (3, 4, 3): '3-4-3'
+        }
+
+        formation_key = (def_count, mid_count, att_count)
+        return formation_map.get(formation_key, 'Unknown')
+    except Exception as e:
+        return 'Unknown'
+
+def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations):
+    """
+    Analyze pass network to extract tactical insights.
+    
+    Args:
+        team_passes (pd.DataFrame): All passes for the team.
+        successful_passes (pd.DataFrame): Successful passes for the team.
+        pass_connections (pd.DataFrame): Passing connections between players.
+        avg_locations (pd.DataFrame): Average player locations.
+    
+    Returns:
+        dict: Statistics and insights for description.
+    """
+    try:
+        stats = {}
+        
+        # Passing accuracy
+        total_passes = len(team_passes)
+        successful_count = len(successful_passes)
+        pass_accuracy = (successful_count / total_passes * 100) if total_passes > 0 else 0
+        stats['total_passes'] = total_passes
+        stats['pass_accuracy'] = round(pass_accuracy, 1)
+        
+        # Playing style
+        stats['possession_style'] = (
+            'possession-based' if pass_accuracy > 80 else 
+            'direct' if pass_accuracy < 70 else 'balanced'
+        )
+        
+        # Formation
+        stats['formation'] = infer_formation(avg_locations)
+        
+        # Wing-back analysis
+        wing_backs = avg_locations[
+            ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) &  # Near sidelines
+            (avg_locations['y'] > 50)  # Advanced position
+        ]
+        wing_back_names = []
+        wing_back_passes = 0
+        if not wing_backs.empty:
+            for wb in wing_backs.index:
+                wb_passes = pass_connections[
+                    (pass_connections['player'] == wb) & 
+                    (pass_connections['y_end'] > 80)  # Passes to attacking third
+                ]['count'].sum()
+                if wb_passes > 5:  # Threshold for active wing-back
+                    wing_back_names.append(wb.split()[-1])
+                    wing_back_passes += wb_passes
+        
+        stats['wing_back_insight'] = (
+            f"wing-backs {', '.join(wing_back_names)} actively contributing to attacks with {int(wing_back_passes)} forward passes"
+            if wing_back_names else "limited wing-back involvement in attacking play"
+        )
+        
+        # Top passing pair
+        if not pass_connections.empty:
+            top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
+            stats['key_connection'] = (
+                f"{top_pair['player'].split()[-1]} and {top_pair['pass_recipient'].split()[-1]} "
+                f"linked up {int(top_pair['count'])} times"
+            )
+        else:
+            stats['key_connection'] = "no dominant passing connections"
+        
+        return stats
+    except Exception as e:
+        return {
+            'total_passes': 0,
+            'pass_accuracy': 0,
+            'possession_style': 'unknown',
+            'formation': 'Unknown',
+            'wing_back_insight': 'no wing-back data available',
+            'key_connection': 'no passing connections available'
+        }
+
+def generate_pass_network_description(team, stats):
+    """
+    Generate a tactical description for the pass network.
+    
+    Args:
+        team (str): Team name.
+        stats (dict): Statistics and insights from analyze_pass_network.
+    
+    Returns:
+        str: Formatted description.
+    """
+    try:
+        templates = {
+            'base': [
+                "{team} completed {pass_accuracy}% of {total_passes} passes, indicating a {possession_style} approach.",
+                "{team} achieved a {pass_accuracy}% pass completion rate across {total_passes} attempts, suggesting a {possession_style} style."
+            ],
+            'formation': [
+                "They appeared to play in a {formation} formation",
+                "The team lined up in a {formation} setup"
+            ],
+            'wing_back': [
+                ", with {wing_back_insight}.",
+                ", where {wing_back_insight}."
+            ],
+            'connection': [
+                " {key_connection}.",
+                " Notably, {key_connection}."
+            ]
+        }
+        
+        description = (
+            random.choice(templates['base']).format(team=team, **stats) + " " +
+            random.choice(templates['formation']).format(**stats) +
+            random.choice(templates['wing_back']).format(**stats) +
+            random.choice(templates['connection']).format(**stats)
+        )
+        
+        return description
+    except Exception as e:
+        return f"No tactical insights available for {team}."
+
 def pass_network(events, team_name, match_id, color):
+    """
+    Plot pass network for a team with tactical description.
+    
+    Args:
+        events (dict): Match event data.
+        team_name (str): Name of the team.
+        match_id (int): Match ID.
+        color (str): Color for visualization.
+    """
     try:
         if 'passes' not in events:
             st.warning(f"No passes data found for {team_name}")
@@ -588,24 +716,31 @@ def pass_network(events, team_name, match_id, color):
                    dpi=300, bbox_inches='tight')
         st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
         
+        # Generate and display tactical description
+        stats = analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations)
+        description = generate_pass_network_description(team_name, stats)
+        st.markdown(
+            f"""
+            <div style="background-color:{'#2d2d2d' if DARK_MODE else '#f8f9fa'};
+                        padding:1rem;border-radius:8px;margin-top:1rem;color:{TEXT_COLOR};">
+                <strong>Tactical Analysis:</strong> {description}
+            </div>
+            """, unsafe_allow_html=True
+        )
+        
     except Exception as e:
         st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
-
 def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup):
-    """New tab for player-specific statistics"""
     with st.expander("Player Statistics", expanded=True):
-        # Combine all players from both teams
         all_players = list(home_lineup) + list(away_lineup)
         selected_player = st.selectbox("Select Player", all_players)
         
-        # Determine player's team
         player_team = home_team if selected_player in home_lineup else away_team
         team_color = HOME_COLOR if player_team == home_team else AWAY_COLOR
         
         st.subheader(f"Performance Analysis: {selected_player}")
         
-        # Create tabs for different stats
         tab1, tab2, tab3 = st.tabs(["Heatmap", "Event Stats", "Passing Network"])
         
         with tab1:
@@ -618,9 +753,7 @@ def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup):
             plot_player_passing_network(events, selected_player, player_team, team_color)
 
 def plot_player_heatmap(events, player_name, team_name, color):
-    """Plot heatmap of player's positions during the match"""
     try:
-        # Get all events for this player
         player_events = pd.concat([events[action_type] 
                                  for action_type in events 
                                  if 'player' in events[action_type].columns])
@@ -630,7 +763,6 @@ def plot_player_heatmap(events, player_name, team_name, color):
             st.warning(f"No position data available for {player_name}")
             return
             
-        # Extract locations
         locations = player_events['location'].dropna()
         if len(locations) == 0:
             st.warning(f"No location data available for {player_name}")
@@ -639,15 +771,12 @@ def plot_player_heatmap(events, player_name, team_name, color):
         x = [loc[0] for loc in locations]
         y = [loc[1] for loc in locations]
         
-        # Create heatmap
         fig, ax = create_pitch_figure(f"{player_name} Heatmap")
         pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
         pitch.draw(ax=ax)
         
-        # Create hexbin heatmap
         hb = pitch.hexbin(x, y, ax=ax, cmap='Reds', gridsize=15, alpha=0.7)
         
-        # Add colorbar
         cb = fig.colorbar(hb, ax=ax, shrink=0.7)
         cb.set_label('Activity Density', color=TEXT_COLOR)
         cb.ax.yaxis.set_tick_params(color=TEXT_COLOR)
@@ -659,9 +788,7 @@ def plot_player_heatmap(events, player_name, team_name, color):
         st.error(f"Heatmap error for {player_name}: {str(e)}")
 
 def show_player_stats(events, player_name):
-    """Display key statistics for selected player"""
     try:
-        # Calculate basic stats
         stats = {
             "Shots": 0,
             "Goals": 0,
@@ -688,7 +815,6 @@ def show_player_stats(events, player_name):
         if 'interceptions' in events:
             stats["Interceptions"] = len(events['interceptions'][events['interceptions']['player'] == player_name])
         
-        # Display stats in columns
         col1, col2, col3 = st.columns(3)
         
         with col1:
@@ -708,7 +834,6 @@ def show_player_stats(events, player_name):
         st.error(f"Stats error for {player_name}: {str(e)}")
 
 def plot_player_passing_network(events, player_name, team_name, color):
-    """Plot passing network for individual player"""
     try:
         if 'passes' not in events:
             st.warning("No passes data available")
@@ -723,18 +848,15 @@ def plot_player_passing_network(events, player_name, team_name, color):
         pitch = Pitch(pitch_type='statsbomb', line_color=LINE_COLOR, pitch_color=PITCH_COLOR)
         pitch.draw(ax=ax)
         
-        # Plot passes
         for _, pass_event in player_passes.iterrows():
             if isinstance(pass_event['location'], list) and isinstance(pass_event['pass_end_location'], list):
                 start_x, start_y = pass_event['location'][0], pass_event['location'][1]
                 end_x, end_y = pass_event['pass_end_location'][0], pass_event['pass_end_location'][1]
                 
-                # Flip coordinates if away team
                 if team_name != pass_event['team']:
                     start_x, start_y = 120 - start_x, 80 - start_y
                     end_x, end_y = 120 - end_x, 80 - end_y
                 
-                # Successful vs unsuccessful passes
                 if pd.isna(pass_event['pass_outcome']):
                     pitch.arrows(start_x, start_y, end_x, end_y, 
                                ax=ax, color=color, width=2, headwidth=4, headlength=4)
@@ -742,13 +864,10 @@ def plot_player_passing_network(events, player_name, team_name, color):
                     pitch.arrows(start_x, start_y, end_x, end_y, 
                                ax=ax, color='gray', width=1, headwidth=3, headlength=3, alpha=0.5)
         
-        # Plot player position marker
         avg_x = player_passes['location'].apply(lambda x: x[0]).mean()
         avg_y = player_passes['location'].apply(lambda x: x[1]).mean()
         pitch.scatter(avg_x, avg_y, ax=ax, s=300, color=color, edgecolors='black', linewidth=1)
         
-        
-        # Add legend
         legend_elements = [
             Line2D([0], [0], color=color, lw=2, label='Successful Pass'),
             Line2D([0], [0], color='gray', lw=2, alpha=0.5, label='Unsuccessful Pass'),
@@ -761,6 +880,7 @@ def plot_player_passing_network(events, player_name, team_name, color):
         
     except Exception as e:
         st.error(f"Passing network error for {player_name}: {str(e)}")
+
 # --------------------------
 # MAIN APP FUNCTION
 # --------------------------
@@ -769,39 +889,31 @@ def main():
     st.title('⚽ Football Match Analysis')
     
     try:
-        # Initialize session state variables if they don't exist
         if 'analyzed' not in st.session_state:
             st.session_state.analyzed = False
         if 'match_data' not in st.session_state:
             st.session_state.match_data = None
         
-        # Load competitions data
         com = sb.competitions()
         com_dict = dict(zip(com['competition_name'], com['competition_id']))
         
-        # Store competitions and seasons in session state
         if 'competitions_data' not in st.session_state:
             st.session_state.competitions_data = com
             st.session_state.available_seasons = {}
         
-        # Competition selection
         competition = st.selectbox('Choose the competition', com_dict.keys())
         
-        # Filter seasons for selected competition
         if competition:
             selected_comp_id = com_dict[competition]
             available_seasons = st.session_state.competitions_data[
                 st.session_state.competitions_data['competition_id'] == selected_comp_id
             ]
             
-            # Create season dictionary for only this competition
             season_dict = dict(zip(available_seasons['season_name'], available_seasons['season_id']))
             
-            # Season selection - only shows valid seasons for chosen competition
             season = st.selectbox('Choose the season', season_dict.keys())
             
             try:
-                # Get matches for selected competition and season
                 data = sb.matches(competition_id=selected_comp_id, 
                                 season_id=season_dict[season])
                 
@@ -811,7 +923,6 @@ def main():
                 if st.button('Analyze Match') or st.session_state.analyzed:
                     st.session_state.analyzed = True
                     if st.session_state.match_data is None or st.session_state.match_data.get('match_id') != matches_id_dict[match]:
-                        # Load and process the data only if it's not already in session state
                         home_team, away_team, home_score, away_score, stadium, home_manager, away_manager, comp_stats = match_data(
                             data, matches_idx[match])
                         
@@ -820,7 +931,6 @@ def main():
                         home_lineup, away_lineup = lineups(home_team, away_team, lineup_data)
                         events = sb.events(match_id=match_id, split=True)
                         
-                        # Store all the necessary data in session state
                         st.session_state.match_data = {
                             'home_team': home_team,
                             'away_team': away_team,
@@ -836,7 +946,6 @@ def main():
                             'events': events
                         }
                     else:
-                        # Retrieve data from session state
                         match_data_dict = st.session_state.match_data
                         home_team = match_data_dict['home_team']
                         away_team = match_data_dict['away_team']
@@ -851,7 +960,6 @@ def main():
                         away_lineup = match_data_dict['away_lineup']
                         events = match_data_dict['events']
                     
-                    # Match header
                     st.markdown(f"""
                         <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
                                 padding:1.5rem;border-radius:12px;margin-bottom:2rem;color:white;">
@@ -873,7 +981,6 @@ def main():
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    # Lineups
                     col1, col2, col3 = st.columns([2, 1, 2])
                     
                     with col1:
@@ -890,7 +997,6 @@ def main():
                             for player in away_lineup:
                                 st.markdown(f"- {player}")
 
-                    # Visualizations
                     st.markdown("---")
                     st.header("Match Visualizations")
                     
@@ -978,7 +1084,6 @@ def main():
                     with tab5:
                         player_stats_tab(events, home_team, away_team, home_lineup, away_lineup)
 
-                    # Add reset button
                     if st.button('Analyze New Match'):
                         st.session_state.analyzed = False
                         st.session_state.match_data = None
