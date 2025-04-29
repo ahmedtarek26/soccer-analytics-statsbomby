@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np
@@ -13,18 +12,8 @@ from matplotlib.lines import Line2D
 import os
 import matplotlib.patheffects as path_effects
 from matplotlib.patches import FancyArrowPatch
+from sklearn.cluster import KMeans
 import random
-
-# Check for scikit-learn availability
-try:
-    from sklearn.cluster import KMeans
-    SKLEARN_AVAILABLE = True
-except ImportError:
-    SKLEARN_AVAILABLE = False
-    st.warning(
-        "scikit-learn is not installed. Formation inference will use a simpler method. "
-        "Install scikit-learn with 'pip install scikit-learn' for improved formation detection."
-    )
 
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
@@ -564,7 +553,7 @@ def player_actions_grid(events, team_name, players, action_type, color):
 
 def infer_formation(avg_locations):
     """
-    Infer team formation using k-means clustering (if available) or zone-based fallback.
+    Infer team formation using k-means clustering on player y-positions.
     
     Args:
         avg_locations (pd.DataFrame): DataFrame with columns 'x', 'y' for player positions.
@@ -576,28 +565,18 @@ def infer_formation(avg_locations):
         if len(avg_locations) < 3:
             return 'Unknown'
         
-        if SKLEARN_AVAILABLE:
-            # Use k-means to cluster players into 3 lines: defense, midfield, attack
-            kmeans = KMeans(n_clusters=3, random_state=42)
-            avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
-            
-            # Sort clusters by mean y-position (defense to attack)
-            cluster_centers = kmeans.cluster_centers_.flatten()
-            sorted_clusters = np.argsort(cluster_centers)
-            
-            # Count players in each line
-            def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
-            mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
-            att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
-        else:
-            # Fallback: Zone-based method
-            def_zone = avg_locations[avg_locations['y'] < 40]  # Defensive third
-            mid_zone = avg_locations[(avg_locations['y'] >= 40) & (avg_locations['y'] < 80)]  # Midfield
-            att_zone = avg_locations[avg_locations['y'] >= 80]  # Attacking third
-            
-            def_count = len(def_zone)
-            mid_count = len(mid_zone)
-            att_count = len(att_zone)
+        # Use k-means to cluster players into 3 lines: defense, midfield, attack
+        kmeans = KMeans(n_clusters=3, random_state=42)
+        avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
+        
+        # Sort clusters by mean y-position (defense to attack)
+        cluster_centers = kmeans.cluster_centers_.flatten()
+        sorted_clusters = np.argsort(cluster_centers)
+        
+        # Count players in each line
+        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
+        mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
+        att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
         
         # Map to common formations
         formation_map = {
