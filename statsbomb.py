@@ -11,6 +11,7 @@ import plotly.express as px
 from matplotlib.lines import Line2D
 import os
 import matplotlib.patheffects as path_effects
+from matplotlib.patches import FancyArrowPatch
 from sklearn.cluster import KMeans
 import random
 
@@ -564,16 +565,20 @@ def infer_formation(avg_locations):
         if len(avg_locations) < 3:
             return 'Unknown'
         
+        # Use k-means to cluster players into 3 lines: defense, midfield, attack
         kmeans = KMeans(n_clusters=3, random_state=42)
         avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
         
+        # Sort clusters by mean y-position (defense to attack)
         cluster_centers = kmeans.cluster_centers_.flatten()
         sorted_clusters = np.argsort(cluster_centers)
         
+        # Count players in each line
         def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
         mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
         att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
         
+        # Map to common formations
         formation_map = {
             (4, 3, 3): '4-3-3',
             (4, 2, 4): '4-2-3-1',
@@ -603,33 +608,37 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
     try:
         stats = {}
         
+        # Passing accuracy
         total_passes = len(team_passes)
         successful_count = len(successful_passes)
         pass_accuracy = (successful_count / total_passes * 100) if total_passes > 0 else 0
         stats['total_passes'] = total_passes
         stats['pass_accuracy'] = round(pass_accuracy, 1)
         
+        # Playing style
         stats['possession_style'] = (
             'possession-based' if pass_accuracy > 80 else 
             'direct' if pass_accuracy < 70 else 'balanced'
         )
         
+        # Formation
         stats['formation'] = infer_formation(avg_locations)
         
+        # Wing-back analysis
         wing_backs = avg_locations[
-            ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) & 
-            (avg_locations['y'] > 50)
+            ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) &  # Near sidelines
+            (avg_locations['y'] > 50)  # Advanced position
         ]
         wing_back_names = []
         wing_back_passes = 0
         if not wing_backs.empty:
             for wb in wing_backs.index:
                 wb_passes = pass_connections[
-                    (pass_connections['position'] == wb) & 
-                    (pass_connections['y_end'] > 80)
+                    (pass_connections['player'] == wb) & 
+                    (pass_connections['y_end'] > 80)  # Passes to attacking third
                 ]['count'].sum()
-                if wb_passes > 5:
-                    wing_back_names.append(wb)
+                if wb_passes > 5:  # Threshold for active wing-back
+                    wing_back_names.append(wb.split()[-1])
                     wing_back_passes += wb_passes
         
         stats['wing_back_insight'] = (
@@ -637,10 +646,11 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             if wing_back_names else "limited wing-back involvement in attacking play"
         )
         
+        # Top passing pair
         if not pass_connections.empty:
             top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
             stats['key_connection'] = (
-                f"{top_pair['position']} and {top_pair['pass_recipient_position']} "
+                f"{top_pair['player'].split()[-1]} and {top_pair['pass_recipient'].split()[-1]} "
                 f"linked up {int(top_pair['count'])} times"
             )
         else:
@@ -701,7 +711,7 @@ def generate_pass_network_description(team, stats):
 
 def pass_network(events, team_name, match_id, color):
     """
-    Plot pass network for a team with tactical description, limited to 11 positions.
+    Plot pass network for a team with tactical description.
     
     Args:
         events (dict): Match event data.
@@ -725,65 +735,30 @@ def pass_network(events, team_name, match_id, color):
             st.warning(f"No successful passes found for {team_name}")
             return
             
-        # Load lineup data to get starting positions
-        lineup_data = sb.lineups(match_id=match_id)[team_name]
-        starting_lineup = lineup_data[lineup_data['positions'].apply(lambda x: len(x) > 0 and x[0]['start_reason'] == 'Starting XI')]['player_name'].tolist()
-        
-        # Define standard positions (simplified for 11 players)
-        position_map = {
-            'Goalkeeper': 'GK',
-            'Right Back': 'RB', 'Left Back': 'LB',
-            'Center Back': 'CB1', 'Center Back': 'CB2',
-            'Right Midfield': 'RM', 'Left Midfield': 'LM',
-            'Center Midfield': 'CM1', 'Center Midfield': 'CM2',
-            'Right Wing': 'RW', 'Left Wing': 'LW',
-            'Center Forward': 'CF'
-        }
-        
-        # Assign positions to players (simplified mapping)
-        player_positions = {}
-        for _, row in lineup_data.iterrows():
-            player = row['player_name']
-            pos_list = row['positions']
-            if pos_list and len(pos_list) > 0:
-                pos = pos_list[0]['position']  # Use the first position
-                simplified_pos = position_map.get(pos, pos[:3])  # Fallback to first 3 chars if not mapped
-                player_positions[player] = simplified_pos
-        
-        # Update successful_passes with position data
-        successful_passes['position'] = successful_passes['player'].map(player_positions)
-        successful_passes['pass_recipient_position'] = successful_passes['pass_recipient'].map(player_positions)
-        
-        # Handle missing positions with a default or skip
-        successful_passes = successful_passes.dropna(subset=['position', 'pass_recipient_position'])
-        
-        # Calculate average locations by position
         locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
         successful_passes[['x', 'y']] = locations
-        avg_locations = successful_passes.groupby('position')[['x', 'y']].mean().head(11)  # Limit to 11 positions
         
-        # Calculate pass counts per position
-        pass_counts = successful_passes.groupby('position').size()
+        avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
+        pass_counts = successful_passes['player'].value_counts()
         avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
         avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
         
-        # Aggregate pass connections by position
         pass_connections = successful_passes.groupby(
-            ['position', 'pass_recipient_position']).size().reset_index(name='count')
+            ['player', 'pass_recipient']).size().reset_index(name='count')
+        
         pass_connections = pass_connections.merge(
             avg_locations[['x', 'y']], 
-            left_on='position', 
+            left_on='player', 
             right_index=True
         )
         pass_connections = pass_connections.merge(
             avg_locations[['x', 'y']], 
-            left_on='pass_recipient_position', 
+            left_on='pass_recipient', 
             right_index=True,
             suffixes=['', '_end']
         )
         pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
         
-        # Plotting
         pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
                      line_color="black", linewidth=1)
         fig, ax = pitch.draw(figsize=(10, 6.5))
@@ -830,10 +805,10 @@ def pass_network(events, team_name, match_id, color):
             zorder=3
         )
         
-        for pos, row in avg_locations.iterrows():
+        for index, row in avg_locations.iterrows():
             text = ax.text(
                 row.x, row.y,
-                pos,
+                index.split()[-1],
                 color="black",
                 va="center",
                 ha="center",
