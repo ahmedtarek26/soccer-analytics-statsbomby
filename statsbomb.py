@@ -637,14 +637,14 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             if wing_back_names else "limited wing-back involvement in attacking play"
         )
         
-        if not pass_connections.empty:
-            top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
-            stats['key_connection'] = (
-                f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
-                f"linked up {int(top_pair['count'])} times"
-            )
-        else:
-            stats['key_connection'] = "no dominant passing connections"
+        # if not pass_connections.empty:
+        #     top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
+        #     stats['key_connection'] = (
+        #         f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
+        #         f"linked up {int(top_pair['count'])} times"
+        #     )
+        # else:
+        #     stats['key_connection'] = "no dominant passing connections"
         
         return stats
     except Exception as e:
@@ -793,7 +793,7 @@ def pass_network(events, team_name, match_id, color):
             color=color,
             edgecolors="black",
             linewidth=0.5,
-            alpha=1,
+            alpha=0.75,
             ax=ax,
             zorder=2
         )
