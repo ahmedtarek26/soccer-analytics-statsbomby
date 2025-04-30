@@ -990,7 +990,7 @@ def plot_player_heatmap(events, player_name, team_name, color):
         cb.ax.yaxis.set_tick_params(color=TEXT_COLOR)
         plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
-        st pyplot(fig)
+        st.pyplot(fig)
         
         # Analytical Description for Heatmap
         avg_x = np.mean(x)
