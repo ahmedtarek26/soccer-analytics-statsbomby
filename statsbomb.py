@@ -625,11 +625,11 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         if not wing_backs.empty:
             for wb in wing_backs.index:
                 wb_passes = pass_connections[
-                    (pass_connections['position'] == wb) & 
+                    (pass_connections['role'] == wb) & 
                     (pass_connections['y_end'] > 80)
                 ]['count'].sum()
                 if wb_passes > 5:
-                    wing_back_names.append(wb)
+                    wing_back_names.append(f"Role {wb}")
                     wing_back_passes += wb_passes
         
         stats['wing_back_insight'] = (
@@ -640,7 +640,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         if not pass_connections.empty:
             top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
             stats['key_connection'] = (
-                f"{top_pair['position']} and {top_pair['pass_recipient_position']} "
+                f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
                 f"linked up {int(top_pair['count'])} times"
             )
         else:
@@ -701,7 +701,7 @@ def generate_pass_network_description(team, stats):
 
 def pass_network(events, team_name, match_id, color):
     """
-    Plot pass network for a team with tactical description, limited to 11 positions.
+    Plot pass network for a team with 11 bubbles representing roles based on average position similarities.
     
     Args:
         events (dict): Match event data.
@@ -725,91 +725,71 @@ def pass_network(events, team_name, match_id, color):
             st.warning(f"No successful passes found for {team_name}")
             return
             
-        # Load lineup data to get starting positions
-        lineup_data = sb.lineups(match_id=match_id)[team_name]
-        starting_lineup = lineup_data[lineup_data['positions'].apply(lambda x: len(x) > 0 and x[0]['start_reason'] == 'Starting XI')]['player_name'].tolist()
-        
-        # Define standard positions (simplified for 11 players)
-        position_map = {
-            'Goalkeeper': 'GK',
-            'Right Back': 'RB', 'Left Back': 'LB',
-            'Center Back': 'CB1', 'Center Back': 'CB2',
-            'Right Midfield': 'RM', 'Left Midfield': 'LM',
-            'Center Midfield': 'CM1', 'Center Midfield': 'CM2',
-            'Right Wing': 'RW', 'Left Wing': 'LW',
-            'Center Forward': 'CF'
-        }
-        
-        # Assign positions to players (simplified mapping)
-        player_positions = {}
-        for _, row in lineup_data.iterrows():
-            player = row['player_name']
-            pos_list = row['positions']
-            if pos_list and len(pos_list) > 0:
-                pos = pos_list[0]['position']  # Use the first position
-                simplified_pos = position_map.get(pos, pos[:3])  # Fallback to first 3 chars if not mapped
-                player_positions[player] = simplified_pos
-        
-        # Update successful_passes with position data
-        successful_passes['position'] = successful_passes['player'].map(player_positions)
-        successful_passes['pass_recipient_position'] = successful_passes['pass_recipient'].map(player_positions)
-        
-        # Handle missing positions with a default or skip
-        successful_passes = successful_passes.dropna(subset=['position', 'pass_recipient_position'])
-        
-        # Calculate average locations by position
+        # Calculate average positions and successful passes for all players
         locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
         successful_passes[['x', 'y']] = locations
-        avg_locations = successful_passes.groupby('position')[['x', 'y']].mean().head(11)  # Limit to 11 positions
+        player_avg_locations = successful_passes.groupby('player')[['x', 'y']].mean()
         
-        # Calculate pass counts per position
-        pass_counts = successful_passes.groupby('position').size()
-        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
-        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
+        # Cluster players into 11 roles based on average positions
+        kmeans = KMeans(n_clusters=11, random_state=42)
+        player_avg_locations['role'] = kmeans.fit_predict(player_avg_locations[['x', 'y']])
         
-        # Aggregate pass connections by position
-        pass_connections = successful_passes.groupby(
-            ['position', 'pass_recipient_position']).size().reset_index(name='count')
-        pass_connections = pass_connections.merge(
-            avg_locations[['x', 'y']], 
-            left_on='position', 
+        # Map players to their roles
+        player_to_role = player_avg_locations['role'].to_dict()
+        successful_passes['role'] = successful_passes['player'].map(player_to_role)
+        successful_passes['pass_recipient_role'] = successful_passes['pass_recipient'].map(player_to_role)
+        
+        # Calculate average locations and pass counts by role
+        role_avg_locations = successful_passes.groupby('role')[['x', 'y']].mean()
+        role_pass_counts = successful_passes.groupby('role').size()
+        role_avg_locations['pass_count'] = role_pass_counts
+        role_avg_locations['marker_size'] = 300 + (1200 * (role_avg_locations['pass_count'] / role_pass_counts.max()))
+        
+        # Aggregate pass connections by role
+        role_pass_connections = successful_passes.groupby(
+            ['role', 'pass_recipient_role']
+        ).size().reset_index(name='count')
+        role_pass_connections = role_pass_connections.merge(
+            role_avg_locations[['x', 'y']], 
+            left_on='role', 
             right_index=True
+        ).merge(
+            role_avg_locations[['x', 'y']], 
+            left_on='pass_recipient_role', 
+            right_index=True, 
+            suffixes=('', '_end')
         )
-        pass_connections = pass_connections.merge(
-            avg_locations[['x', 'y']], 
-            left_on='pass_recipient_position', 
-            right_index=True,
-            suffixes=['', '_end']
-        )
-        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
+        role_pass_connections['width'] = 1 + (4 * (role_pass_connections['count'] / role_pass_connections['count'].max()))
         
         # Plotting
-        pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
-                     line_color="black", linewidth=1)
+        pitch = Pitch(pitch_type="statsbomb", pitch_color=PITCH_COLOR, line_color=LINE_COLOR)
         fig, ax = pitch.draw(figsize=(10, 6.5))
         fig.set_facecolor(FIG_BG_COLOR)
         
+        # Heatmap
         heatmap_bins = (6, 4)
         bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
                                         statistic='count', bins=heatmap_bins)
         pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
                      alpha=0.3, zorder=0.5)
         
+        # Pass connections
         pitch.lines(
-            pass_connections.x,
-            pass_connections.y,
-            pass_connections.x_end,
-            pass_connections.y_end,
-            lw=pass_connections.width,
+            role_pass_connections.x,
+            role_pass_connections.y,
+            role_pass_connections.x_end,
+            role_pass_connections.y_end,
+            lw=role_pass_connections.width,
             color=color,
             zorder=1,
             ax=ax
         )
         
+        # Role bubbles
         pitch.scatter(
-            avg_locations.x,
-            avg_locations.y,
-            s=avg_locations.marker_size,
+            role_avg_locations.x,
+            role_avg_locations.y,
+            s=role_avg_locations.marker_size,
             color=color,
             edgecolors="black",
             linewidth=0.5,
@@ -818,10 +798,11 @@ def pass_network(events, team_name, match_id, color):
             zorder=2
         )
         
+        # Inner white circles for contrast
         pitch.scatter(
-            avg_locations.x,
-            avg_locations.y,
-            s=avg_locations.marker_size/2,
+            role_avg_locations.x,
+            role_avg_locations.y,
+            s=role_avg_locations.marker_size/2,
             color="white",
             edgecolors="black",
             linewidth=0.5,
@@ -830,10 +811,11 @@ def pass_network(events, team_name, match_id, color):
             zorder=3
         )
         
-        for pos, row in avg_locations.iterrows():
+        # Role labels
+        for role, row in role_avg_locations.iterrows():
             text = ax.text(
                 row.x, row.y,
-                pos,
+                f"Role {role}",
                 color="black",
                 va="center",
                 ha="center",
@@ -843,17 +825,17 @@ def pass_network(events, team_name, match_id, color):
             )
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
         
-        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
+        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20, color=TEXT_COLOR)
         fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
-                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color='black')
+                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color=TEXT_COLOR)
         
         plt.tight_layout()
         plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
-                   dpi=300, bbox_inches='tight')
+                   dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
         st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
         
         # Generate and display tactical description
-        stats = analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations)
+        stats = analyze_pass_network(team_passes, successful_passes, role_pass_connections, role_avg_locations)
         description = generate_pass_network_description(team_name, stats)
         st.markdown(
             f"""
