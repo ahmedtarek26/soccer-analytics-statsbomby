@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np
@@ -57,6 +58,25 @@ FONT_SIZE_XL = 16
 
 # Ensure graphs directory exists
 os.makedirs('graphs', exist_ok=True)
+
+# Position type mapping
+POSITION_TYPE_MAP = {
+    "Goalkeeper": "Goalkeeper",
+    "Center Back": "Defender",
+    "Left Back": "Defender",
+    "Right Back": "Defender",
+    "Left Wing Back": "Defender",
+    "Right Wing Back": "Defender",
+    "Center Midfield": "Midfielder",
+    "Left Midfield": "Midfielder",
+    "Right Midfield": "Midfielder",
+    "Attacking Midfield": "Midfielder",
+    "Defensive Midfield": "Midfielder",
+    "Center Forward": "Forward",
+    "Left Wing": "Forward",
+    "Right Wing": "Forward",
+    "Second Striker": "Forward"
+}
 
 # --------------------------
 # DATA PROCESSING FUNCTIONS
@@ -616,45 +636,13 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         
         stats['formation'] = infer_formation(avg_locations)
         
-        # wing_backs = avg_locations[
-        #     ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) & 
-        #     (avg_locations['y'] > 50)
-        # ]
-        # wing_back_names = []
-        # wing_back_passes = 0
-        # if not wing_backs.empty:
-        #     for wb in wing_backs.index:
-        #         wb_passes = pass_connections[
-        #             (pass_connections['role'] == wb) & 
-        #             (pass_connections['y_end'] > 50)
-        #         ]['count'].sum()
-        #         if wb_passes > 5:
-        #             wing_back_names.append(f"Role {wb}")
-        #             wing_back_passes += wb_passes
-        
-        # stats['wing_back_insight'] = (
-        #     f"wing-backs {', '.join(wing_back_names)} actively contributing to attacks with {int(wing_back_passes)} forward passes"
-        #     if wing_back_names else "limited wing-back involvement in attacking play"
-        # )
-        
-        # if not pass_connections.empty:
-        #     top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
-        #     stats['key_connection'] = (
-        #         f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
-        #         f"linked up {int(top_pair['count'])} times"
-        #     )
-        # else:
-        #     stats['key_connection'] = "no dominant passing connections"
-        
         return stats
     except Exception as e:
         return {
             'total_passes': 0,
             'pass_accuracy': 0,
             'possession_style': 'unknown',
-            'formation': 'Unknown',
-            'wing_back_insight': 'no wing-back data available',
-            'key_connection': 'no passing connections available'
+            'formation': 'Unknown'
         }
 
 def generate_pass_network_description(team, stats):
@@ -677,22 +665,12 @@ def generate_pass_network_description(team, stats):
             'formation': [
                 "They appeared to play in a {formation} formation",
                 "The team lined up in a {formation} setup"
-            ],
-            # 'wing_back': [
-            #     ", with {wing_back_insight}.",
-            #     ", where {wing_back_insight}."
-            # ],
-            # 'connection': [
-            #     " {key_connection}.",
-            #     " Notably, {key_connection}."
-            # ]
+            ]
         }
         
         description = (
             random.choice(templates['base']).format(team=team, **stats) + " " +
-            random.choice(templates['formation']).format(**stats) 
-            # random.choice(templates['wing_back']).format(**stats) 
-            # random.choice(templates['connection']).format(**stats)
+            random.choice(templates['formation']).format(**stats)
         )
         
         return description
@@ -811,20 +789,6 @@ def pass_network(events, team_name, match_id, color):
             zorder=3
         )
         
-        # Role labels
-        # for role, row in role_avg_locations.iterrows():
-        #     text = ax.text(
-        #         row.x, row.y,
-        #         f"Role {role}",
-        #         color="black",
-        #         va="center",
-        #         ha="center",
-        #         size=10,
-        #         weight="bold",
-        #         zorder=4
-        #     )
-        #     text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
-        
         ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20, color=TEXT_COLOR)
         fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
                 fontstyle='italic', fontsize=FONT_SIZE_SM-2, color=TEXT_COLOR)
@@ -849,7 +813,7 @@ def pass_network(events, team_name, match_id, color):
     except Exception as e:
         st.error(f"Error creating pass network for {team_name}: {str(e)}")
 
-def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup):
+def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup, lineup_data):
     with st.expander("Player Statistics", expanded=True):
         all_players = list(home_lineup) + list(away_lineup)
         selected_player = st.selectbox("Select Player", all_players)
@@ -865,7 +829,7 @@ def player_stats_tab(events, home_team, away_team, home_lineup, away_lineup):
             plot_player_heatmap(events, selected_player, player_team, team_color)
             
         with tab2:
-            show_player_stats(events, selected_player)
+            show_player_stats(events, selected_player, lineup_data, player_team)
             
         with tab3:
             plot_player_passing_network(events, selected_player, player_team, team_color)
@@ -924,10 +888,11 @@ def plot_player_heatmap(events, player_name, team_name, color):
     except Exception as e:
         st.error(f"Heatmap error for {player_name}: {str(e)}")
 
-def show_player_stats(events, player_name):
+def show_player_stats(events, player_name, lineup_data, player_team):
     try:
         stats = {
-            "Position": "",
+            "Position": "Unknown",
+            "Position Type": "Unknown",
             "Shots": 0,
             "Goals": 0,
             "Passes": 0,
@@ -936,12 +901,18 @@ def show_player_stats(events, player_name):
             "Tackles": 0,
             "Interceptions": 0
         }
-
-        if 'position' in events:
-            player_position = events['position'][events['position']['player'] == player_name]
-            if not player_position.empty:
-                stats["Position"] = player_position.iloc[0]['position']
-
+        
+        # Get player position and position type from lineup_data
+        if player_team in lineup_data:
+            team_df = lineup_data[player_team]
+            player_row = team_df[team_df['player_name'] == player_name]
+            if not player_row.empty and player_row['positions'].iloc[0]:
+                position = player_row['positions'].iloc[0][0]['position']
+                stats["Position"] = position
+                stats["Position Type"] = POSITION_TYPE_MAP.get(position.strip(), "Unknown")
+                # Warn if position type is Unknown
+                if stats["Position Type"] == "Unknown":
+                    st.warning(f"Position type for '{position}' not mapped. Defaulting to 'Unknown'.")
         
         if 'shots' in events:
             player_shots = events['shots'][events['shots']['player'] == player_name]
@@ -963,21 +934,22 @@ def show_player_stats(events, player_name):
         
         with col1:
             st.metric("Position", stats["Position"])
+            st.metric("Position Type", stats["Position Type"])
+            
+        with col2:
             st.metric("Shots", stats["Shots"])
             st.metric("Goals", stats["Goals"])
             
-        with col2:
+        with col3:
             st.metric("Passes", stats["Passes"])
             st.metric("Pass Accuracy", 
                      f"{(stats['Successful Passes']/stats['Passes']*100 if stats['Passes'] > 0 else 0):.1f}%")
-            
-        with col3:
             st.metric("Dribbles", stats["Dribbles"])
             st.metric("Interceptions", stats["Interceptions"])
             
         # Analytical Description for Player Stats
         pass_accuracy = (stats['Successful Passes'] / stats['Passes'] * 100) if stats['Passes'] > 0 else 0
-        description = f"{player_name} attempted {stats['Passes']} passes with {pass_accuracy:.1f}% accuracy."
+        description = f"{player_name}, playing as a {stats['Position Type']} ({stats['Position']}), attempted {stats['Passes']} passes with {pass_accuracy:.1f}% accuracy."
         if pass_accuracy > 85:
             description += " They were highly accurate in their passing."
         elif pass_accuracy < 70:
@@ -1128,7 +1100,8 @@ def main():
                             'match_id': match_id,
                             'home_lineup': home_lineup,
                             'away_lineup': away_lineup,
-                            'events': events
+                            'events': events,
+                            'lineup_data': lineup_data
                         }
                     else:
                         match_data_dict = st.session_state.match_data
@@ -1144,6 +1117,7 @@ def main():
                         home_lineup = match_data_dict['home_lineup']
                         away_lineup = match_data_dict['away_lineup']
                         events = match_data_dict['events']
+                        lineup_data = match_data_dict['lineup_data']
                     
                     st.markdown(f"""
                         <div style="background-color:{'#2d2d2d' if DARK_MODE else '#003049'};
@@ -1267,7 +1241,7 @@ def main():
                             ))
                     
                     with tab5:
-                        player_stats_tab(events, home_team, away_team, home_lineup, away_lineup)
+                        player_stats_tab(events, home_team, away_team, home_lineup, away_lineup, lineup_data)
 
                     if st.button('Analyze New Match'):
                         st.session_state.analyzed = False
