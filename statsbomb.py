@@ -626,7 +626,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             for wb in wing_backs.index:
                 wb_passes = pass_connections[
                     (pass_connections['role'] == wb) & 
-                    (pass_connections['y_end'] > 65)
+                    (pass_connections['y_end'] > 50)
                 ]['count'].sum()
                 if wb_passes > 5:
                     wing_back_names.append(f"Role {wb}")
