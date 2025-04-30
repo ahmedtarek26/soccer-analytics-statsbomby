@@ -626,7 +626,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             for wb in wing_backs.index:
                 wb_passes = pass_connections[
                     (pass_connections['role'] == wb) & 
-                    (pass_connections['y_end'] > 65)
+                    (pass_connections['y_end'] > 80)
                 ]['count'].sum()
                 if wb_passes > 5:
                     wing_back_names.append(f"Role {wb}")
@@ -637,14 +637,14 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             if wing_back_names else "limited wing-back involvement in attacking play"
         )
         
-        # if not pass_connections.empty:
-        #     top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
-        #     stats['key_connection'] = (
-        #         f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
-        #         f"linked up {int(top_pair['count'])} times"
-        #     )
-        # else:
-        #     stats['key_connection'] = "no dominant passing connections"
+        if not pass_connections.empty:
+            top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
+            stats['key_connection'] = (
+                f"Role {top_pair['role']} and Role {top_pair['pass_recipient_role']} "
+                f"linked up {int(top_pair['count'])} times"
+            )
+        else:
+            stats['key_connection'] = "no dominant passing connections"
         
         return stats
     except Exception as e:
@@ -654,7 +654,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             'possession_style': 'unknown',
             'formation': 'Unknown',
             'wing_back_insight': 'no wing-back data available',
-            # 'key_connection': 'no passing connections available'
+            'key_connection': 'no passing connections available'
         }
 
 def generate_pass_network_description(team, stats):
@@ -682,17 +682,17 @@ def generate_pass_network_description(team, stats):
                 ", with {wing_back_insight}.",
                 ", where {wing_back_insight}."
             ],
-            # 'connection': [
-            #     " {key_connection}.",
-            #     " Notably, {key_connection}."
-            # ]
+            'connection': [
+                " {key_connection}.",
+                " Notably, {key_connection}."
+            ]
         }
         
         description = (
             random.choice(templates['base']).format(team=team, **stats) + " " +
             random.choice(templates['formation']).format(**stats) +
-            random.choice(templates['wing_back']).format(**stats) +
-            random.choice(templates['connection']).format(**stats)
+            random.choice(templates['wing_back']).format(**stats) 
+            # random.choice(templates['connection']).format(**stats)
         )
         
         return description
