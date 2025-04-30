@@ -927,6 +927,7 @@ def plot_player_heatmap(events, player_name, team_name, color):
 def show_player_stats(events, player_name):
     try:
         stats = {
+            "Position": "",
             "Shots": 0,
             "Goals": 0,
             "Passes": 0,
@@ -935,6 +936,12 @@ def show_player_stats(events, player_name):
             "Tackles": 0,
             "Interceptions": 0
         }
+
+        if 'position' in events:
+            player_position = events['position'][events['position']['player'] == player_name]
+            if not player_position.empty:
+                stats["Position"] = player_position.iloc[0]['position']
+
         
         if 'shots' in events:
             player_shots = events['shots'][events['shots']['player'] == player_name]
@@ -955,6 +962,7 @@ def show_player_stats(events, player_name):
         col1, col2, col3 = st.columns(3)
         
         with col1:
+            st.metric("Position", stats["Position"])
             st.metric("Shots", stats["Shots"])
             st.metric("Goals", stats["Goals"])
             
