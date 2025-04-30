@@ -506,7 +506,7 @@ def defensive_actions(events, h, w, match_id, action_type):
             home_actions = df[df['possession_team'] == h].shape[0]
             away_actions = df[df['possession_team'] == w].shape[0]
             description = f"{h} committed {home_actions} {action_type.replace('_', ' ')}, while {w} had {away_actions}."
-            if        if home_actions > away_actions:
+            if home_actions > away_actions:
                 description += f" {h} showed greater defensive intensity."
             elif away_actions > home_actions:
                 description += f" {w} was more active in {action_type.replace('_', ' ')}."
@@ -831,7 +831,7 @@ def pass_network(events, team_name, match_id, color):
         
         # Heatmap
         heatmap_bins = (6, 4)
-        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
+        bs_heatmap = pitch.bin_statistic(successful_passes['x', successful_passes['y'], 
                                         statistic='count', bins=heatmap_bins)
         pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
                      alpha=0.3, zorder=0.5)
