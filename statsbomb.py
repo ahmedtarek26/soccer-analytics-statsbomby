@@ -892,7 +892,6 @@ def show_player_stats(events, player_name, lineup_data, player_team):
     try:
         stats = {
             "Position": "Unknown",
-            "Position Type": "Unknown",
             "Shots": 0,
             "Goals": 0,
             "Passes": 0,
@@ -909,11 +908,7 @@ def show_player_stats(events, player_name, lineup_data, player_team):
             if not player_row.empty and player_row['positions'].iloc[0]:
                 position = player_row['positions'].iloc[0][0]['position']
                 stats["Position"] = position
-                stats["Position Type"] = POSITION_TYPE_MAP.get(position.strip(), "Unknown")
-                # Warn if position type is Unknown
-                if stats["Position Type"] == "Unknown":
-                    st.warning(f"Position type for '{position}' not mapped. Defaulting to 'Unknown'.")
-        
+                
         if 'shots' in events:
             player_shots = events['shots'][events['shots']['player'] == player_name]
             stats["Shots"] = len(player_shots)
@@ -934,17 +929,16 @@ def show_player_stats(events, player_name, lineup_data, player_team):
         
         with col1:
             st.metric("Position", stats["Position"])
-            st.metric("Position Type", stats["Position Type"])
             
         with col2:
             st.metric("Shots", stats["Shots"])
             st.metric("Goals", stats["Goals"])
+            st.metric("Dribbles", stats["Dribbles"])
             
         with col3:
             st.metric("Passes", stats["Passes"])
             st.metric("Pass Accuracy", 
                      f"{(stats['Successful Passes']/stats['Passes']*100 if stats['Passes'] > 0 else 0):.1f}%")
-            st.metric("Dribbles", stats["Dribbles"])
             st.metric("Interceptions", stats["Interceptions"])
             
         # Analytical Description for Player Stats
