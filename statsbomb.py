@@ -654,7 +654,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
             'possession_style': 'unknown',
             'formation': 'Unknown',
             'wing_back_insight': 'no wing-back data available',
-            'key_connection': 'no passing connections available'
+            # 'key_connection': 'no passing connections available'
         }
 
 def generate_pass_network_description(team, stats):
@@ -793,7 +793,7 @@ def pass_network(events, team_name, match_id, color):
             color=color,
             edgecolors="black",
             linewidth=0.5,
-            alpha=0.75,
+            alpha=86,
             ax=ax,
             zorder=2
         )
