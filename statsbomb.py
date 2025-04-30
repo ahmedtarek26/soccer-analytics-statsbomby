@@ -793,23 +793,23 @@ def pass_network(events, team_name, match_id, color):
             color=color,
             edgecolors="black",
             linewidth=0.5,
-            alpha=0.95,
+            alpha=1,
             ax=ax,
             zorder=2
         )
         
-        # # Inner white circles for contrast
-        # pitch.scatter(
-        #     role_avg_locations.x,
-        #     role_avg_locations.y,
-        #     s=role_avg_locations.marker_size/2,
-        #     color="white",
-        #     edgecolors="black",
-        #     linewidth=0.5,
-        #     alpha=1,
-        #     ax=ax,
-        #     zorder=3
-        # )
+        # Inner white circles for contrast
+        pitch.scatter(
+            role_avg_locations.x,
+            role_avg_locations.y,
+            s=role_avg_locations.marker_size/4,
+            color="white",
+            edgecolors="black",
+            linewidth=0.5,
+            alpha=1,
+            ax=ax,
+            zorder=3
+        )
         
         # Role labels
         # for role, row in role_avg_locations.iterrows():
