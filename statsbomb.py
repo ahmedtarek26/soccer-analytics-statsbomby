@@ -616,26 +616,26 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         
         stats['formation'] = infer_formation(avg_locations)
         
-        wing_backs = avg_locations[
-            ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) & 
-            (avg_locations['y'] > 50)
-        ]
-        wing_back_names = []
-        wing_back_passes = 0
-        if not wing_backs.empty:
-            for wb in wing_backs.index:
-                wb_passes = pass_connections[
-                    (pass_connections['role'] == wb) & 
-                    (pass_connections['y_end'] > 50)
-                ]['count'].sum()
-                if wb_passes > 5:
-                    wing_back_names.append(f"Role {wb}")
-                    wing_back_passes += wb_passes
+        # wing_backs = avg_locations[
+        #     ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) & 
+        #     (avg_locations['y'] > 50)
+        # ]
+        # wing_back_names = []
+        # wing_back_passes = 0
+        # if not wing_backs.empty:
+        #     for wb in wing_backs.index:
+        #         wb_passes = pass_connections[
+        #             (pass_connections['role'] == wb) & 
+        #             (pass_connections['y_end'] > 50)
+        #         ]['count'].sum()
+        #         if wb_passes > 5:
+        #             wing_back_names.append(f"Role {wb}")
+        #             wing_back_passes += wb_passes
         
-        stats['wing_back_insight'] = (
-            f"wing-backs {', '.join(wing_back_names)} actively contributing to attacks with {int(wing_back_passes)} forward passes"
-            if wing_back_names else "limited wing-back involvement in attacking play"
-        )
+        # stats['wing_back_insight'] = (
+        #     f"wing-backs {', '.join(wing_back_names)} actively contributing to attacks with {int(wing_back_passes)} forward passes"
+        #     if wing_back_names else "limited wing-back involvement in attacking play"
+        # )
         
         # if not pass_connections.empty:
         #     top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
@@ -678,10 +678,10 @@ def generate_pass_network_description(team, stats):
                 "They appeared to play in a {formation} formation",
                 "The team lined up in a {formation} setup"
             ],
-            'wing_back': [
-                ", with {wing_back_insight}.",
-                ", where {wing_back_insight}."
-            ],
+            # 'wing_back': [
+            #     ", with {wing_back_insight}.",
+            #     ", where {wing_back_insight}."
+            # ],
             # 'connection': [
             #     " {key_connection}.",
             #     " Notably, {key_connection}."
@@ -690,8 +690,8 @@ def generate_pass_network_description(team, stats):
         
         description = (
             random.choice(templates['base']).format(team=team, **stats) + " " +
-            random.choice(templates['formation']).format(**stats) +
-            random.choice(templates['wing_back']).format(**stats) 
+            random.choice(templates['formation']).format(**stats) 
+            # random.choice(templates['wing_back']).format(**stats) 
             # random.choice(templates['connection']).format(**stats)
         )
         
@@ -806,7 +806,7 @@ def pass_network(events, team_name, match_id, color):
             color="white",
             edgecolors="black",
             linewidth=0.5,
-            alpha=1,
+            alpha=0.75,
             ax=ax,
             zorder=3
         )
