@@ -59,24 +59,24 @@ FONT_SIZE_XL = 16
 # Ensure graphs directory exists
 os.makedirs('graphs', exist_ok=True)
 
-# Position type mapping
-POSITION_TYPE_MAP = {
-    "Goalkeeper": "Goalkeeper",
-    "Center Back": "Defender",
-    "Left Back": "Defender",
-    "Right Back": "Defender",
-    "Left Wing Back": "Defender",
-    "Right Wing Back": "Defender",
-    "Center Midfield": "Midfielder",
-    "Left Midfield": "Midfielder",
-    "Right Midfield": "Midfielder",
-    "Attacking Midfield": "Midfielder",
-    "Defensive Midfield": "Midfielder",
-    "Center Forward": "Forward",
-    "Left Wing": "Forward",
-    "Right Wing": "Forward",
-    "Second Striker": "Forward"
-}
+# # Position type mapping
+# POSITION_TYPE_MAP = {
+#     "Goalkeeper": "Goalkeeper",
+#     "Center Back": "Defender",
+#     "Left Back": "Defender",
+#     "Right Back": "Defender",
+#     "Left Wing Back": "Defender",
+#     "Right Wing Back": "Defender",
+#     "Center Midfield": "Midfielder",
+#     "Left Midfield": "Midfielder",
+#     "Right Midfield": "Midfielder",
+#     "Attacking Midfield": "Midfielder",
+#     "Defensive Midfield": "Midfielder",
+#     "Center Forward": "Forward",
+#     "Left Wing": "Forward",
+#     "Right Wing": "Forward",
+#     "Second Striker": "Forward"
+# }
 
 # --------------------------
 # DATA PROCESSING FUNCTIONS
@@ -943,7 +943,7 @@ def show_player_stats(events, player_name, lineup_data, player_team):
             
         # Analytical Description for Player Stats
         pass_accuracy = (stats['Successful Passes'] / stats['Passes'] * 100) if stats['Passes'] > 0 else 0
-        description = f"{player_name}, playing as a {stats['Position Type']} ({stats['Position']}), attempted {stats['Passes']} passes with {pass_accuracy:.1f}% accuracy."
+        description = f"{player_name}, playing as a  ({stats['Position']}), attempted {stats['Passes']} passes with {pass_accuracy:.1f}% accuracy."
         if pass_accuracy > 85:
             description += " They were highly accurate in their passing."
         elif pass_accuracy < 70:
