@@ -87,42 +87,6 @@ def match_data(data, match_index):
 def lineups(h, w, data):
     return data[h]['player_name'].values, data[w]['player_name'].values
 
-def get_player_roles(lineup_data, team_name):
-    """
-    Extract primary roles for all players from lineup data and map to simplified roles.
-    
-    Args:
-        lineup_data (dict): Lineup data from StatsBomb.
-        team_name (str): Name of the team.
-    
-    Returns:
-        dict: Mapping of player names to their simplified roles (e.g., 'GK', 'CB').
-    """
-    roles = {}
-    role_map = {
-        'Goalkeeper': 'GK',
-        'Center Back': 'CB',
-        'Left Back': 'LB',
-        'Right Back': 'RB',
-        'Center Midfield': 'CM',
-        'Left Midfield': 'LM',
-        'Right Midfield': 'RM',
-        'Left Wing': 'LW',
-        'Right Wing': 'RW',
-        'Center Forward': 'ST',
-        'Attacking Midfield': 'CAM',
-        'Defensive Midfield': 'CDM'
-    }
-    team_df = lineup_data[team_name]
-    for _, row in team_df.iterrows():
-        player = row['player_name']
-        pos_list = row['positions']
-        if pos_list:
-            primary_pos = pos_list[0]['position']
-            simplified_role = role_map.get(primary_pos, primary_pos[:2].upper())
-            roles[player] = simplified_role
-    return roles
-
 # --------------------------
 # VISUALIZATION FUNCTIONS
 # --------------------------
@@ -133,13 +97,13 @@ def create_pitch_figure(title, figsize=(10, 6.5)):
     pitch.draw(ax=ax)
     plt.gca().invert_yaxis()
     fig_text(s=title, x=0.5, y=0.95, fontsize=FONT_SIZE_LG, 
-             color=TEXT_COLOR, fontfamily=FONT_BOLD, ha='center')
+            color=TEXT_COLOR, fontfamily=FONT_BOLD, ha='center')
     return fig, ax
 
 def save_and_display(fig, filename):
     fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
-             fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
-             color=TEXT_COLOR, fontfamily=FONT)
+            fontstyle='italic', fontsize=FONT_SIZE_SM-2, 
+            color=TEXT_COLOR, fontfamily=FONT)
     plt.tight_layout()
     plt.savefig(f'graphs/{filename}', dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
     st.image(f'graphs/{filename}')
@@ -155,8 +119,8 @@ def plot_player_actions(events, player_name, action_type, color, ax):
             x_end, y_end = event['carry_end_location']
             dx, dy = x_end - x_start, y_end - y_start
             ax.arrow(x_start, y_start, dx, dy, 
-                     head_width=1.5, head_length=2, 
-                     fc=color, ec=color, alpha=0.5)
+                    head_width=1.5, head_length=2, 
+                    fc=color, ec=color, alpha=0.5)
     else:
         x = player_events['location'].apply(lambda loc: loc[0])
         y = player_events['location'].apply(lambda loc: loc[1])
@@ -183,9 +147,9 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
         xg_bar = ax.barh([''], [xg], height=bar_height, color=XG_BAR_COLOR, alpha=0.4)
 
         ax.text(goals/2, 0, f"{goals}", 
-                ha='center', va='center', color='white', fontweight='bold', fontsize=12)
+               ha='center', va='center', color='white', fontweight='bold', fontsize=12)
         ax.text(xg/2, 0, "", 
-                ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
+               ha='center', va='center', color=XG_BAR_COLOR, fontweight='bold')
 
         max_value = max(goals, xg)
         ax.set_xlim(0, max_value * 1.3)
@@ -203,20 +167,20 @@ def plot_player_xg(shots, player_name, team_name, competition_info, home_team):
             f"{games} games"
         )
         ax.text(max_value * 1.15, 0, metrics_text, 
-                ha='left', va='center', linespacing=1.8)
+               ha='left', va='center', linespacing=1.8)
 
         ax.text(0.02, -0.8, "Low xG", transform=ax.transAxes, 
-                fontsize=9, color='#666666')
+               fontsize=9, color='#666666')
         ax.text(0.98, -0.8, "High xG", transform=ax.transAxes, 
-                fontsize=9, color='#666666', ha='right')
+               fontsize=9, color='#666666', ha='right')
         ax.plot([0.1, 0.9], [-0.5, -0.5], transform=ax.transAxes, 
-                color='#666666', linewidth=2, clip_on=False)
+               color='#666666', linewidth=2, clip_on=False)
 
         player_color = HOME_COLOR if team_name == home_team else AWAY_COLOR
         fig.text(0.05, 0.9, player_name, 
-                 fontsize=16, fontweight='bold', ha='left', color=player_color)
+                fontsize=16, fontweight='bold', ha='left', color=player_color)
         fig.text(0.05, 0.82, f"{team_name} | {competition_info}", 
-                 fontsize=11, color='#666666', ha='left')
+                fontsize=11, color='#666666', ha='left')
 
         st.pyplot(fig)
 
@@ -250,12 +214,12 @@ def shots_goal(shots, h, w, match_id):
 
         total_shots = len(shots)
         fig_text(s=f'Total Shots: {total_shots}', x=0.15, y=0.85, 
-                 fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+                fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
         
         home_patch = plt.Circle((0,0), 1, color=HOME_COLOR, label=h)
         away_patch = plt.Circle((0,0), 1, color=AWAY_COLOR, label=w)
         legend = ax.legend(handles=[home_patch, away_patch], loc='upper right',
-                          facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
+                         facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
         for text in legend.get_texts():
             text.set_color(TEXT_COLOR)
         
@@ -337,9 +301,9 @@ def goals(shots, h, w, match_id):
                 fontsize = FONT_SIZE_SM-1
             
             ax.text(plot_x, plot_y, display_text, 
-                    fontsize=fontsize, color=text_color,
-                    ha='center', va='center', fontfamily=FONT,
-                    fontweight='bold')
+                   fontsize=fontsize, color=text_color,
+                   ha='center', va='center', fontfamily=FONT,
+                   fontweight='bold')
             
             legend_entries[player_name[0]] = player_name
             
@@ -358,10 +322,10 @@ def goals(shots, h, w, match_id):
                 offset_y = -circleSize - 2
             
             ax.text(plot_x + offset_x, plot_y + offset_y, foot_text,
-                    fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
-                    ha='center', va='center', fontfamily=FONT_BOLD,
-                    bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
-                             boxstyle='round,pad=0.2', alpha=0.7))
+                   fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                   ha='center', va='center', fontfamily=FONT_BOLD,
+                   bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
+                            boxstyle='round,pad=0.2', alpha=0.7))
 
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
         sm._A = []
@@ -372,21 +336,21 @@ def goals(shots, h, w, match_id):
         
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label='Left Foot (L)',
-                   markerfacecolor='gray', markersize=6),
+                  markerfacecolor='gray', markersize=6),
             Line2D([0], [0], marker='o', color='w', label='Right Foot (R)',
-                   markerfacecolor='gray', markersize=6),
+                  markerfacecolor='gray', markersize=6),
             Line2D([0], [0], marker='o', color='w', label='Other (O)',
-                   markerfacecolor='gray', markersize=6)
+                  markerfacecolor='gray', markersize=6)
         ]
         
         player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
         legend_elements.append(Line2D([0], [0], marker='', color='w', 
-                                    label=f"Players:\n{player_legend}",
-                                    markersize=0))
+                                   label=f"Players:\n{player_legend}",
+                                   markersize=0))
         
         ax.legend(handles=legend_elements, loc='upper left', 
-                  facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
-                  fontsize=FONT_SIZE_SM-2, handlelength=1.5)
+                 facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
+                 fontsize=FONT_SIZE_SM-2, handlelength=1.5)
         
         save_and_display(fig, f'goals-{match_id}.png')
         
@@ -445,7 +409,7 @@ def dribbles(events, h, w, match_id):
             
             total_dribbles = len(events['dribbles'])
             fig_text(s=f'Total Dribbles: {total_dribbles}', x=0.15, y=0.85,
-                     fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
             save_and_display(fig, f'dribbles-{match_id}.png')
             
             # Analytical Description for Dribbles
@@ -499,7 +463,7 @@ def defensive_actions(events, h, w, match_id, action_type):
             
             total_actions = len(df)
             fig_text(s=f'Total: {total_actions}', x=0.15, y=0.85,
-                     fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
+                    fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
             save_and_display(fig, f'{action_type}-{match_id}.png')
             
             # Analytical Description for Defensive Actions
@@ -588,29 +552,27 @@ def player_actions_grid(events, team_name, players, action_type, color):
 
 def infer_formation(avg_locations):
     """
-    Infer team formation using k-means clustering on outfield player y-positions (excludes GK).
+    Infer team formation using k-means clustering on player y-positions.
     
     Args:
-        avg_locations (pd.DataFrame): DataFrame with columns 'x', 'y' for player positions, indexed by role.
+        avg_locations (pd.DataFrame): DataFrame with columns 'x', 'y' for player positions.
     
     Returns:
         str: Inferred formation (e.g., '4-3-3') or 'Unknown'.
     """
     try:
-        # Exclude goalkeeper
-        outfield_locations = avg_locations[avg_locations.index != 'GK']
-        if len(outfield_locations) < 3:
+        if len(avg_locations) < 3:
             return 'Unknown'
         
         kmeans = KMeans(n_clusters=3, random_state=42)
-        outfield_locations['cluster'] = kmeans.fit_predict(outfield_locations[['y']])
+        avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
         
         cluster_centers = kmeans.cluster_centers_.flatten()
         sorted_clusters = np.argsort(cluster_centers)
         
-        def_count = sum(outfield_locations['cluster'] == sorted_clusters[0])
-        mid_count = sum(outfield_locations['cluster'] == sorted_clusters[1])
-        att_count = sum(outfield_locations['cluster'] == sorted_clusters[2])
+        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
+        mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
+        att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
         
         formation_map = {
             (4, 3, 3): '4-3-3',
@@ -625,17 +587,15 @@ def infer_formation(avg_locations):
     except Exception as e:
         return 'Unknown'
 
-def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations, home_team, team_name):
+def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations):
     """
     Analyze pass network to extract tactical insights.
     
     Args:
         team_passes (pd.DataFrame): All passes for the team.
         successful_passes (pd.DataFrame): Successful passes for the team.
-        pass_connections (pd.DataFrame): Passing connections between roles.
-        avg_locations (pd.DataFrame): Average role locations.
-        home_team (str): Name of the home team.
-        team_name (str): Name of the team being analyzed.
+        pass_connections (pd.DataFrame): Passing connections between players.
+        avg_locations (pd.DataFrame): Average player locations.
     
     Returns:
         dict: Statistics and insights for description.
@@ -656,20 +616,20 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         
         stats['formation'] = infer_formation(avg_locations)
         
-        # Check wing-back involvement (LB and RB in midfield or attacking zones)
-        is_home = team_name == home_team
-        wing_backs = avg_locations[avg_locations.index.isin(['LB', 'RB'])]
+        wing_backs = avg_locations[
+            ((avg_locations['x'] < 20) | (avg_locations['x'] > 100)) & 
+            (avg_locations['y'] > 50)
+        ]
         wing_back_names = []
         wing_back_passes = 0
-        for role, loc in wing_backs.iterrows():
-            # Home team: x > 40 (midfield or attacking); Away team: x < 80
-            if (is_home and loc['x'] > 40) or (not is_home and loc['x'] < 80):
+        if not wing_backs.empty:
+            for wb in wing_backs.index:
                 wb_passes = pass_connections[
-                    (pass_connections['role'] == role) & 
-                    (pass_connections['y_end'] > 50)
+                    (pass_connections['position'] == wb) & 
+                    (pass_connections['y_end'] > 80)
                 ]['count'].sum()
                 if wb_passes > 5:
-                    wing_back_names.append(role)
+                    wing_back_names.append(wb)
                     wing_back_passes += wb_passes
         
         stats['wing_back_insight'] = (
@@ -680,7 +640,7 @@ def analyze_pass_network(team_passes, successful_passes, pass_connections, avg_l
         if not pass_connections.empty:
             top_pair = pass_connections.loc[pass_connections['count'].idxmax()]
             stats['key_connection'] = (
-                f"{top_pair['role']} and {top_pair['pass_recipient_role']} "
+                f"{top_pair['position']} and {top_pair['pass_recipient_position']} "
                 f"linked up {int(top_pair['count'])} times"
             )
         else:
@@ -741,7 +701,7 @@ def generate_pass_network_description(team, stats):
 
 def pass_network(events, team_name, match_id, color):
     """
-    Plot pass network for a team with 11 bubbles representing standard football roles.
+    Plot pass network for a team with tactical description, limited to 11 positions.
     
     Args:
         events (dict): Match event data.
@@ -765,94 +725,91 @@ def pass_network(events, team_name, match_id, color):
             st.warning(f"No successful passes found for {team_name}")
             return
             
-        # Get player roles from lineup data
-        lineup_data = sb.lineups(match_id=match_id)
-        player_roles = get_player_roles(lineup_data, team_name)
+        # Load lineup data to get starting positions
+        lineup_data = sb.lineups(match_id=match_id)[team_name]
+        starting_lineup = lineup_data[lineup_data['positions'].apply(lambda x: len(x) > 0 and x[0]['start_reason'] == 'Starting XI')]['player_name'].tolist()
         
-        # Map players to their roles
-        successful_passes['role'] = successful_passes['player'].map(player_roles)
-        successful_passes['pass_recipient_role'] = successful_passes['pass_recipient'].map(player_roles)
+        # Define standard positions (simplified for 11 players)
+        position_map = {
+            'Goalkeeper': 'GK',
+            'Right Back': 'RB', 'Left Back': 'LB',
+            'Center Back': 'CB1', 'Center Back': 'CB2',
+            'Right Midfield': 'RM', 'Left Midfield': 'LM',
+            'Center Midfield': 'CM1', 'Center Midfield': 'CM2',
+            'Right Wing': 'RW', 'Left Wing': 'LW',
+            'Center Forward': 'CF'
+        }
         
-        # Drop passes with missing roles
-        successful_passes = successful_passes.dropna(subset=['role', 'pass_recipient_role'])
+        # Assign positions to players (simplified mapping)
+        player_positions = {}
+        for _, row in lineup_data.iterrows():
+            player = row['player_name']
+            pos_list = row['positions']
+            if pos_list and len(pos_list) > 0:
+                pos = pos_list[0]['position']  # Use the first position
+                simplified_pos = position_map.get(pos, pos[:3])  # Fallback to first 3 chars if not mapped
+                player_positions[player] = simplified_pos
         
-        # Calculate average locations by role
+        # Update successful_passes with position data
+        successful_passes['position'] = successful_passes['player'].map(player_positions)
+        successful_passes['pass_recipient_position'] = successful_passes['pass_recipient'].map(player_positions)
+        
+        # Handle missing positions with a default or skip
+        successful_passes = successful_passes.dropna(subset=['position', 'pass_recipient_position'])
+        
+        # Calculate average locations by position
         locations = successful_passes['location'].apply(lambda x: pd.Series(x, index=['x', 'y']))
         successful_passes[['x', 'y']] = locations
-        role_avg_locations = successful_passes.groupby('role')[['x', 'y']].mean()
+        avg_locations = successful_passes.groupby('position')[['x', 'y']].mean().head(11)  # Limit to 11 positions
         
-        # Ensure 11 roles by selecting common roles and limiting CB/CM to two instances
-        common_roles = ['GK', 'LB', 'RB', 'CB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CAM', 'CDM']
-        selected_roles = []
-        role_counts = {'CB': 0, 'CM': 0}
-        for role in role_avg_locations.index:
-            if role in common_roles:
-                if role in ['CB', 'CM'] and role_counts[role] < 2:
-                    selected_roles.append(f"{role}{role_counts[role]+1}")
-                    role_counts[role] += 1
-                elif role not in ['CB', 'CM']:
-                    selected_roles.append(role)
+        # Calculate pass counts per position
+        pass_counts = successful_passes.groupby('position').size()
+        avg_locations['pass_count'] = avg_locations.index.map(pass_counts)
+        avg_locations['marker_size'] = 300 + (1200 * (avg_locations['pass_count'] / pass_counts.max()))
         
-        # Filter to selected roles (up to 11)
-        role_avg_locations = role_avg_locations.loc[
-            role_avg_locations.index.isin([r.strip('12') for r in selected_roles])
-        ].head(11)
-        
-        # Calculate pass counts per role
-        role_pass_counts = successful_passes[
-            successful_passes['role'].isin(role_avg_locations.index)
-        ].groupby('role').size()
-        role_avg_locations['pass_count'] = role_avg_locations.index.map(role_pass_counts)
-        role_avg_locations['pass_count'] = role_avg_locations['pass_count'].fillna(0)
-        role_avg_locations['marker_size'] = 300 + (1200 * (role_avg_locations['pass_count'] / role_avg_locations['pass_count'].max()))
-        
-        # Aggregate pass connections by role
-        role_pass_connections = successful_passes[
-            (successful_passes['role'].isin(role_avg_locations.index)) &
-            (successful_passes['pass_recipient_role'].isin(role_avg_locations.index))
-        ].groupby(['role', 'pass_recipient_role']).size().reset_index(name='count')
-        
-        role_pass_connections = role_pass_connections.merge(
-            role_avg_locations[['x', 'y']], 
-            left_on='role', 
+        # Aggregate pass connections by position
+        pass_connections = successful_passes.groupby(
+            ['position', 'pass_recipient_position']).size().reset_index(name='count')
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='position', 
             right_index=True
-        ).merge(
-            role_avg_locations[['x', 'y']], 
-            left_on='pass_recipient_role', 
-            right_index=True, 
-            suffixes=('', '_end')
         )
-        role_pass_connections['width'] = 1 + (4 * (role_pass_connections['count'] / role_pass_connections['count'].max()))
+        pass_connections = pass_connections.merge(
+            avg_locations[['x', 'y']], 
+            left_on='pass_recipient_position', 
+            right_index=True,
+            suffixes=['', '_end']
+        )
+        pass_connections['width'] = 1 + (4 * (pass_connections['count'] / pass_connections['count'].max()))
         
         # Plotting
-        pitch = Pitch(pitch_type="statsbomb", pitch_color=PITCH_COLOR, line_color=LINE_COLOR)
+        pitch = Pitch(pitch_type="statsbomb", pitch_color="white", 
+                     line_color="black", linewidth=1)
         fig, ax = pitch.draw(figsize=(10, 6.5))
         fig.set_facecolor(FIG_BG_COLOR)
         
-        # Heatmap
         heatmap_bins = (6, 4)
         bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
                                         statistic='count', bins=heatmap_bins)
         pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
                      alpha=0.3, zorder=0.5)
         
-        # Pass connections
         pitch.lines(
-            role_pass_connections.x,
-            role_pass_connections.y,
-            role_pass_connections.x_end,
-            role_pass_connections.y_end,
-            lw=role_pass_connections.width,
+            pass_connections.x,
+            pass_connections.y,
+            pass_connections.x_end,
+            pass_connections.y_end,
+            lw=pass_connections.width,
             color=color,
             zorder=1,
             ax=ax
         )
         
-        # Role bubbles
         pitch.scatter(
-            role_avg_locations.x,
-            role_avg_locations.y,
-            s=role_avg_locations.marker_size,
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size,
             color=color,
             edgecolors="black",
             linewidth=0.5,
@@ -861,11 +818,10 @@ def pass_network(events, team_name, match_id, color):
             zorder=2
         )
         
-        # Inner white circles for contrast
         pitch.scatter(
-            role_avg_locations.x,
-            role_avg_locations.y,
-            s=role_avg_locations.marker_size/2,
+            avg_locations.x,
+            avg_locations.y,
+            s=avg_locations.marker_size/2,
             color="white",
             edgecolors="black",
             linewidth=0.5,
@@ -874,13 +830,10 @@ def pass_network(events, team_name, match_id, color):
             zorder=3
         )
         
-        # Role labels (use selected_roles for display)
-        role_label_map = {r.strip('12'): r for r in selected_roles}
-        for role, row in role_avg_locations.iterrows():
-            display_role = role_label_map.get(role, role)
+        for pos, row in avg_locations.iterrows():
             text = ax.text(
                 row.x, row.y,
-                display_role,
+                pos,
                 color="black",
                 va="center",
                 ha="center",
@@ -890,18 +843,17 @@ def pass_network(events, team_name, match_id, color):
             )
             text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
         
-        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20, color=TEXT_COLOR)
+        ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20)
         fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
-                 fontstyle='italic', fontsize=FONT_SIZE_SM-2, color=TEXT_COLOR)
+                fontstyle='italic', fontsize=FONT_SIZE_SM-2, color='black')
         
         plt.tight_layout()
         plt.savefig(f'graphs/pass_network_{team_name}_{match_id}.png', 
-                   dpi=300, bbox_inches='tight', facecolor=FIG_BG_COLOR)
+                   dpi=300, bbox_inches='tight')
         st.image(f'graphs/pass_network_{team_name}_{match_id}.png')
         
         # Generate and display tactical description
-        home_team = events['passes']['team'].iloc[0] if not team_passes.empty else team_name
-        stats = analyze_pass_network(team_passes, successful_passes, role_pass_connections, role_avg_locations, home_team, team_name)
+        stats = analyze_pass_network(team_passes, successful_passes, pass_connections, avg_locations)
         description = generate_pass_network_description(team_name, stats)
         st.markdown(
             f"""
@@ -1081,10 +1033,10 @@ def plot_player_passing_network(events, player_name, team_name, color):
                 
                 if pd.isna(pass_event['pass_outcome']):
                     pitch.arrows(start_x, start_y, end_x, end_y, 
-                                ax=ax, color=color, width=2, headwidth=4, headlength=4)
+                               ax=ax, color=color, width=2, headwidth=4, headlength=4)
                 else:
                     pitch.arrows(start_x, start_y, end_x, end_y, 
-                                ax=ax, color='gray', width=1, headwidth=3, headlength=3, alpha=0.5)
+                               ax=ax, color='gray', width=1, headwidth=3, headlength=3, alpha=0.5)
         
         avg_x = player_passes['location'].apply(lambda x: x[0]).mean()
         avg_y = player_passes['location'].apply(lambda x: x[1]).mean()
