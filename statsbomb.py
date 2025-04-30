@@ -812,18 +812,18 @@ def pass_network(events, team_name, match_id, color):
         )
         
         # Role labels
-        for role, row in role_avg_locations.iterrows():
-            text = ax.text(
-                row.x, row.y,
-                f"Role {role}",
-                color="black",
-                va="center",
-                ha="center",
-                size=10,
-                weight="bold",
-                zorder=4
-            )
-            text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
+        # for role, row in role_avg_locations.iterrows():
+        #     text = ax.text(
+        #         row.x, row.y,
+        #         f"Role {role}",
+        #         color="black",
+        #         va="center",
+        #         ha="center",
+        #         size=10,
+        #         weight="bold",
+        #         zorder=4
+        #     )
+        #     text.set_path_effects([path_effects.withStroke(linewidth=1, foreground="white")])
         
         ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20, color=TEXT_COLOR)
         fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
