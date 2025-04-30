@@ -744,7 +744,8 @@ def generate_pass_network_description(team, stats):
 
 def pass_network(events, team_name, match_id, color):
     """
-    Plot pass network for a team with exactly 11 bubbles representing standard football roles.
+    Plot pass network for a team with exactly 11 bubbles representing standard football roles,
+    labeled as role1, role2, etc., for duplicates (e.g., CB1, CB2).
     
     Args:
         events (dict): Match event data.
@@ -784,73 +785,63 @@ def pass_network(events, team_name, match_id, color):
         successful_passes[['x', 'y']] = locations
         role_avg_locations = successful_passes.groupby('role')[['x', 'y']].mean()
         
-        # Ensure exactly 11 roles are selected
-        common_roles = ['GK', 'LB', 'RB', 'CB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CAM', 'CDM', 'MID', 'FWD', 'DEF']
+        # Define common roles
+        common_roles = ['GK', 'LB', 'RB', 'CB', 'CB', 'CM', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CAM', 'CDM', 'MID', 'FWD', 'DEF']
+        
+        # Select exactly 11 roles
         selected_roles = []
+        available_roles = role_avg_locations.index.tolist()
         role_counts = {'CB': 0, 'CM': 0}  # Track duplicates for CB and CM
         
-        # Step 1: Select unique roles from available data
+        # Step 1: Assign roles based on pass data
         for role in common_roles:
-            if role in role_avg_locations.index:
-                if role in ['CB', 'CM']:
-                    if role_counts[role] < 2:  # Allow up to 2 CBs or CMs
-                        selected_roles.append(f"{role}{role_counts[role]+1}")
-                        role_counts[role] += 1
-                else:
+            if len(selected_roles) < 11:
+                if role in available_roles and role not in ['CB', 'CM']:
                     selected_roles.append(role)
-        
-        # Step 2: If fewer than 11 roles, fill with duplicates or fallback roles
-        while len(selected_roles) < 11:
-            for role in common_roles:
-                if role in ['CB', 'CM'] and role_counts[role] < 2:
-                    selected_roles.append(f"{role}{role_counts[role]+1}")
+                    available_roles.remove(role)
+                elif role in ['CB', 'CM'] and role in available_roles and role_counts[role] < 2:
                     role_counts[role] += 1
-                elif role not in ['CB', 'CM'] and role not in [r.strip('12') for r in selected_roles]:
+                    selected_roles.append(f"{role}{role_counts[role]}")
+                    available_roles.remove(role)
+        
+        # Step 2: Fill remaining slots with fallbacks
+        while len(selected_roles) < 11:
+            for role in ['MID', 'FWD', 'DEF']:
+                if len(selected_roles) < 11 and role not in [r.strip('12') for r in selected_roles]:
                     selected_roles.append(role)
-                if len(selected_roles) >= 11:
-                    break
         
         # Ensure exactly 11 roles
         selected_roles = selected_roles[:11]
-        if len(selected_roles) != 11:
-            st.warning(f"Could not select exactly 11 roles for {team_name}. Selected: {len(selected_roles)} roles.")
-            return
         
-        # Filter to selected roles
-        role_avg_locations = role_avg_locations.loc[
-            role_avg_locations.index.isin([r.strip('12') for r in selected_roles])
-        ]
-        
-        # If still missing roles, assign fallback positions
-        missing_count = 11 - len(role_avg_locations)
-        if missing_count > 0:
-            fallback_roles = ['MID', 'FWD', 'DEF']
-            for i in range(missing_count):
-                fallback_role = fallback_roles[i % len(fallback_roles)]
+        # Create a DataFrame for selected roles with positions
+        role_positions = pd.DataFrame(index=[r.strip('12') for r in selected_roles], columns=['x', 'y'])
+        for role in role_positions.index:
+            if role in role_avg_locations.index:
+                role_positions.loc[role, ['x', 'y']] = role_avg_locations.loc[role, ['x', 'y']]
+            else:
                 # Assign default coordinates (center of pitch)
-                role_avg_locations.loc[fallback_role] = {'x': 60, 'y': 40}
-                selected_roles.append(fallback_role)
+                role_positions.loc[role, ['x', 'y']] = [60, 40]
         
         # Calculate pass counts per role
         role_pass_counts = successful_passes[
-            successful_passes['role'].isin(role_avg_locations.index)
+            successful_passes['role'].isin(role_positions.index)
         ].groupby('role').size()
-        role_avg_locations['pass_count'] = role_avg_locations.index.map(role_pass_counts)
-        role_avg_locations['pass_count'] = role_avg_locations['pass_count'].fillna(0)
-        role_avg_locations['marker_size'] = 300 + (1200 * (role_avg_locations['pass_count'] / role_avg_locations['pass_count'].max()))
+        role_positions['pass_count'] = role_positions.index.map(role_pass_counts)
+        role_positions['pass_count'] = role_positions['pass_count'].fillna(0)
+        role_positions['marker_size'] = 300 + (1200 * (role_positions['pass_count'] / role_positions['pass_count'].max()))
         
         # Aggregate pass connections by role
         role_pass_connections = successful_passes[
-            (successful_passes['role'].isin(role_avg_locations.index)) &
-            (successful_passes['pass_recipient_role'].isin(role_avg_locations.index))
+            (successful_passes['role'].isin(role_positions.index)) &
+            (successful_passes['pass_recipient_role'].isin(role_positions.index))
         ].groupby(['role', 'pass_recipient_role']).size().reset_index(name='count')
         
         role_pass_connections = role_pass_connections.merge(
-            role_avg_locations[['x', 'y']], 
+            role_positions[['x', 'y']], 
             left_on='role', 
             right_index=True
         ).merge(
-            role_avg_locations[['x', 'y']], 
+            role_positions[['x', 'y']], 
             left_on='pass_recipient_role', 
             right_index=True, 
             suffixes=('', '_end')
@@ -883,9 +874,9 @@ def pass_network(events, team_name, match_id, color):
         
         # Role bubbles
         pitch.scatter(
-            role_avg_locations.x,
-            role_avg_locations.y,
-            s=role_avg_locations.marker_size,
+            role_positions.x,
+            role_positions.y,
+            s=role_positions.marker_size,
             color=color,
             edgecolors="black",
             linewidth=0.5,
@@ -896,9 +887,9 @@ def pass_network(events, team_name, match_id, color):
         
         # Inner white circles for contrast
         pitch.scatter(
-            role_avg_locations.x,
-            role_avg_locations.y,
-            s=role_avg_locations.marker_size/2,
+            role_positions.x,
+            role_positions.y,
+            s=role_positions.marker_size/2,
             color="white",
             edgecolors="black",
             linewidth=0.5,
@@ -907,9 +898,9 @@ def pass_network(events, team_name, match_id, color):
             zorder=3
         )
         
-        # Role labels
+        # Role labels (e.g., CB1, CB2, CM1, CM2)
         role_label_map = {r.strip('12'): r for r in selected_roles}
-        for role, row in role_avg_locations.iterrows():
+        for role, row in role_positions.iterrows():
             display_role = role_label_map.get(role, role)
             text = ax.text(
                 row.x, row.y,
@@ -934,7 +925,7 @@ def pass_network(events, team_name, match_id, color):
         
         # Generate and display tactical description
         home_team = events['passes']['team'].iloc[0] if not team_passes.empty else team_name
-        stats = analyze_pass_network(team_passes, successful_passes, role_pass_connections, role_avg_locations, home_team, team_name)
+        stats = analyze_pass_network(team_passes, successful_passes, role_pass_connections, role_positions, home_team, team_name)
         description = generate_pass_network_description(team_name, stats)
         st.markdown(
             f"""
@@ -999,7 +990,7 @@ def plot_player_heatmap(events, player_name, team_name, color):
         cb.ax.yaxis.set_tick_params(color=TEXT_COLOR)
         plt.setp(plt.getp(cb.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
-        st.pyplot(fig)
+        st pyplot(fig)
         
         # Analytical Description for Heatmap
         avg_x = np.mean(x)
