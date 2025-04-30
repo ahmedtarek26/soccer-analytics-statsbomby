@@ -793,7 +793,7 @@ def pass_network(events, team_name, match_id, color):
             color=color,
             edgecolors="black",
             linewidth=0.5,
-            alpha=86,
+            alpha=0.85,
             ax=ax,
             zorder=2
         )
