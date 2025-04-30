@@ -111,7 +111,7 @@ def get_player_roles(lineup_data, team_name):
         'Right Wing': 'RW',
         'Center Forward': 'ST',
         'Attacking Midfield': 'CAM',
-        'Defensive Midfield': 'CDM',
+        'Defensive Midfield': 'CDM'
     }
     team_df = lineup_data[team_name]
     for _, row in team_df.iterrows():
@@ -782,7 +782,7 @@ def pass_network(events, team_name, match_id, color):
         role_avg_locations = successful_passes.groupby('role')[['x', 'y']].mean()
         
         # Ensure 11 roles by selecting common roles and limiting CB/CM to two instances
-        common_roles = ['GK', 'LB', 'RB', 'CB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'AM']
+        common_roles = ['GK', 'LB', 'RB', 'CB', 'CM', 'LM', 'RM', 'LW', 'RW', 'ST', 'CAM', 'CDM']
         selected_roles = []
         role_counts = {'CB': 0, 'CM': 0}
         for role in role_avg_locations.index:
@@ -831,7 +831,7 @@ def pass_network(events, team_name, match_id, color):
         
         # Heatmap
         heatmap_bins = (6, 4)
-        bs_heatmap = pitch.bin_statistic(successful_passes['x', successful_passes['y'], 
+        bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
                                         statistic='count', bins=heatmap_bins)
         pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
                      alpha=0.3, zorder=0.5)
