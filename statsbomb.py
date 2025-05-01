@@ -307,7 +307,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='white',
+                       fontsize=fontsize, color='white',edgecolor='black',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -360,7 +360,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='white',
+                       fontsize=fontsize, color='white',edgecolor='black',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
