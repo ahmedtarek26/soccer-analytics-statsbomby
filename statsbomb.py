@@ -217,16 +217,29 @@ def shots_goal(shots, h, w, match_id):
         away_shots = shots[shots['team'] == w].shape[0]
         total_shots = len(shots)
         
+        # Define xG values for the scale
+        xg_values = [0.05, 0.2, 0.5, 1.0]  # Representative xG values for the scale
+        xg_sizes = [np.sqrt(xg) * 5 for xg in xg_values]  # Same scaling as shot circles
+        
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label=f'{h} Shots: {home_shots}', 
                    markerfacecolor=HOME_COLOR, markersize=8),
             Line2D([0], [0], marker='o', color='w', label=f'{w} Shots: {away_shots}', 
                    markerfacecolor=AWAY_COLOR, markersize=8),
             Line2D([0], [0], marker='', color='w', label=f'Total Shots: {total_shots}', 
-                   markersize=0)
+                   markersize=0),
+            Line2D([0], [0], marker='o', color='w', label='Low xG', 
+                   markerfacecolor='gray', markersize=xg_sizes[0]),
+            Line2D([0], [0], marker='o', color='w', label='', 
+                   markerfacecolor='gray', markersize=xg_sizes[1]),
+            Line2D([0], [0], marker='o', color='w', label='', 
+                   markerfacecolor='gray', markersize=xg_sizes[2]),
+            Line2D([0], [0], marker='o', color='w', label='High xG', 
+                   markerfacecolor='gray', markersize=xg_sizes[3])
         ]
         legend = ax.legend(handles=legend_elements, loc='upper left',
-                         facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
+                         facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
+                         fontsize=FONT_SIZE_SM-3, handlelength=1.2)
         for text in legend.get_texts():
             text.set_color(TEXT_COLOR)
         
