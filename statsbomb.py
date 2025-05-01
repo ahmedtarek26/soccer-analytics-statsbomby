@@ -13,6 +13,7 @@ import os
 import matplotlib.patheffects as path_effects
 from sklearn.cluster import KMeans
 import random
+import matplotlib.cm as cm
 
 # Set page config must be the first Streamlit command
 st.set_page_config(layout="wide", page_title="Football Match Analysis")
@@ -274,20 +275,29 @@ def goals(shots, h, w, match_id):
         
         legend_entries = {}
         
+        # Define colormaps and normalization for minutes
+        norm = plt.Normalize(0, 120)
+        home_cmap = plt.cm.Reds_r
+        away_cmap = plt.cm.Blues_r
+        
         # Plot home team goals
         if not home_goals_df.empty:
             for i, shot in home_goals_df.iterrows():
                 x = shot['location'][0]
                 y = shot['location'][1]
+                minute = shot.get('minute', 0)
                 plot_x = x
                 plot_y = pitchWidthY - y
                 circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
                 
-                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=HOME_COLOR, alpha=0.8)
+                # Get color based on minute
+                color = home_cmap(norm(minute))
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, 
+                                      facecolor=color, edgecolor=HOME_COLOR, 
+                                      hatch='//', alpha=0.8, linewidth=1.5)
                 ax.add_patch(shotCircle)
                 
                 player_name = shot['player'].split()[-1]
-                text_color = 'white' if DARK_MODE else 'black'
                 
                 if shot['shot_statsbomb_xg'] < 0.1:
                     display_text = player_name[0]
@@ -297,7 +307,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color=text_color,
+                       fontsize=fontsize, color='white',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -328,15 +338,19 @@ def goals(shots, h, w, match_id):
             for i, shot in away_goals_df.iterrows():
                 x = shot['location'][0]
                 y = shot['location'][1]
+                minute = shot.get('minute', 0)
                 plot_x = pitchLengthX - x
                 plot_y = y
                 circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
                 
-                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=AWAY_COLOR, alpha=0.8)
+                # Get color based on minute
+                color = away_cmap(norm(minute))
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, 
+                                      facecolor=color, edgecolor=AWAY_COLOR, 
+                                      hatch='||', alpha=0.8, linewidth=1.5)
                 ax.add_patch(shotCircle)
                 
                 player_name = shot['player'].split()[-1]
-                text_color = 'white' if DARK_MODE else 'black'
                 
                 if shot['shot_statsbomb_xg'] < 0.1:
                     display_text = player_name[0]
@@ -346,7 +360,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color=text_color,
+                       fontsize=fontsize, color='white',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -371,6 +385,19 @@ def goals(shots, h, w, match_id):
                        ha='center', va='center', fontfamily=FONT_BOLD,
                        bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
                                 boxstyle='round,pad=0.2', alpha=0.7))
+
+        # Add colorbars
+        if not home_goals_df.empty:
+            sm_home = plt.cm.ScalarMappable(cmap=home_cmap, norm=norm)
+            cbar_home = plt.colorbar(sm_home, ax=ax, pad=0.01, shrink=0.5, aspect=15, location='left')
+            cbar_home.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
+            cbar_home.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
+        
+        if not away_goals_df.empty:
+            sm_away = plt.cm.ScalarMappable(cmap=away_cmap, norm=norm)
+            cbar_away = plt.colorbar(sm_away, ax=ax, pad=0.01, shrink=0.5, aspect=15, location='right')
+            cbar_away.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
+            cbar_away.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
 
         # Add legend
         legend_elements = [
