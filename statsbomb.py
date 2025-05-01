@@ -58,25 +58,6 @@ FONT_SIZE_XL = 16
 # Ensure graphs directory exists
 os.makedirs('graphs', exist_ok=True)
 
-# # Position type mapping
-# POSITION_TYPE_MAP = {
-#     "Goalkeeper": "Goalkeeper",
-#     "Center Back": "Defender",
-#     "Left Back": "Defender",
-#     "Right Back": "Defender",
-#     "Left Wing Back": "Defender",
-#     "Right Wing Back": "Defender",
-#     "Center Midfield": "Midfielder",
-#     "Left Midfield": "Midfielder",
-#     "Right Midfield": "Midfielder",
-#     "Attacking Midfield": "Midfielder",
-#     "Defensive Midfield": "Midfielder",
-#     "Center Forward": "Forward",
-#     "Left Wing": "Forward",
-#     "Right Wing": "Forward",
-#     "Second Striker": "Forward"
-# }
-
 # --------------------------
 # DATA PROCESSING FUNCTIONS
 # --------------------------
@@ -391,29 +372,7 @@ def goals(shots, h, w, match_id):
                        bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
                                 boxstyle='round,pad=0.2', alpha=0.7))
 
-        # Add colorbars for home and away teams
-        if not home_goals_df.empty:
-            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.get_cmap('Blues_r'), 
-                                          norm=plt.Normalize(vmin=0, vmax=home_goals_df['minute'].max()))
-            home_sm._A = []
-            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.01, aspect=15, 
-                                   fraction=0.03, shrink=0.5, label=f'{h} Goal Minute')
-            home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-3)
-            home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-4)
-            plt.setp(plt.getp(home_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
-        
-        if not away_goals_df.empty:
-            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.get_cmap('Reds_r'), 
-                                          norm=plt.Normalize(vmin=0, vmax=away_goals_df['minute'].max()))
-            away_sm._A = []
-            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.01, aspect=15, 
-                                   fraction=0.03, shrink=0.5, label=f'{w} Goal Minute')
-            away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-3)
-            away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-4)
-            plt.setp(plt.getp(away_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
-            away_cbar.ax.yaxis.set_label_position('left')
-            away_cbar.ax.yaxis.tick_left()
-        
+        # Add legend
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label=f'{h} Goal', 
                    markerfacecolor=HOME_COLOR, markersize=6),
@@ -423,7 +382,7 @@ def goals(shots, h, w, match_id):
                    markerfacecolor='gray', markersize=5),
             Line2D([0], [0], marker='o', color='w', label='Right Foot (R)', 
                    markerfacecolor='gray', markersize=5),
-            Line2D([0], [0], marker='o',-D color='w', label='Other (O)', 
+            Line2D([0], [0], marker='o', color='w', label='Other (O)', 
                    markerfacecolor='gray', markersize=5)
         ]
         
