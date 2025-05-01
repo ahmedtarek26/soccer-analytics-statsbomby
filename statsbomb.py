@@ -347,7 +347,7 @@ def goals(shots, h, w, match_id):
                 color = away_cmap(norm(minute))
                 shotCircle = plt.Circle((plot_x, plot_y), circleSize, 
                                       facecolor=color, edgecolor=AWAY_COLOR, 
-                                      hatch='||', alpha=0.8, linewidth=1.5)
+                                      hatch='//', alpha=0.8, linewidth=1.5)
                 ax.add_patch(shotCircle)
                 
                 player_name = shot['player'].split()[-1]
