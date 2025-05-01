@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import numpy as np
@@ -232,13 +231,19 @@ def shots_goal(shots, h, w, match_id):
             shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=1 if goal else 0.2)
             ax.add_patch(shotCircle)
 
+        home_shots = shots[shots['team'] == h].shape[0]
+        away_shots = shots[shots['team'] == w].shape[0]
         total_shots = len(shots)
-        fig_text(s=f'Total Shots: {total_shots}', x=0.15, y=0.85, 
-                fontsize=FONT_SIZE_MD, color=TEXT_COLOR, fontfamily=FONT)
         
-        home_patch = plt.Circle((0,0), 1, color=HOME_COLOR, label=h)
-        away_patch = plt.Circle((0,0), 1, color=AWAY_COLOR, label=w)
-        legend = ax.legend(handles=[home_patch, away_patch], loc='upper right',
+        legend_elements = [
+            Line2D([0], [0], marker='o', color='w', label=f'{h} Shots: {home_shots}', 
+                   markerfacecolor=HOME_COLOR, markersize=8),
+            Line2D([0], [0], marker='o', color='w', label=f'{w} Shots: {away_shots}', 
+                   markerfacecolor=AWAY_COLOR, markersize=8),
+            Line2D([0], [0], marker='', color='w', label=f'Total Shots: {total_shots}', 
+                   markersize=0)
+        ]
+        legend = ax.legend(handles=legend_elements, loc='upper right',
                          facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR)
         for text in legend.get_texts():
             text.set_color(TEXT_COLOR)
@@ -246,8 +251,6 @@ def shots_goal(shots, h, w, match_id):
         save_and_display(fig, f'shots-{match_id}.png')
         
         # Analytical Description for Shots
-        home_shots = shots[shots['team'] == h].shape[0]
-        away_shots = shots[shots['team'] == w].shape[0]
         home_goals = shots[(shots['team'] == h) & (shots['shot_outcome'] == 'Goal')].shape[0]
         away_goals = shots[(shots['team'] == w) & (shots['shot_outcome'] == 'Goal')].shape[0]
         top_shooter = shots['player'].value_counts().idxmax() if not shots.empty else "N/A"
@@ -285,82 +288,151 @@ def goals(shots, h, w, match_id):
             st.warning("No goals data available")
             return
 
-        cmap = plt.cm.Reds
+        home_goals_df = goals_df[goals_df['team'] == h]
+        away_goals_df = goals_df[goals_df['team'] == w]
         
         legend_entries = {}
         
-        for i, shot in goals_df.iterrows():
-            x = shot['location'][0]
-            y = shot['location'][1]
-            team_name = shot['team']
-            circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
-            
-            if team_name == h:
+        # Plot home team goals
+        if not home_goals_df.empty:
+            home_cmap = plt.cm.Blues
+            for i, shot in home_goals_df.iterrows():
+                x = shot['location'][0]
+                y = shot['location'][1]
                 plot_x = x
                 plot_y = pitchWidthY - y
-                team_color = HOME_COLOR
-            else:
+                circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
+                
+                time_norm = shot['minute'] / (home_goals_df['minute'].max() + 1) if not home_goals_df.empty else 0
+                color = home_cmap(time_norm)
+                
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
+                ax.add_patch(shotCircle)
+                
+                player_name = shot['player'].split()[-1]
+                text_color = 'black' if time_norm < 0.5 else 'white'
+                
+                if shot['shot_statsbomb_xg'] < 0.1:
+                    display_text = player_name[0]
+                    fontsize = FONT_SIZE_SM-2
+                else:
+                    display_text = player_name
+                    fontsize = FONT_SIZE_SM-1
+                
+                ax.text(plot_x, plot_y, display_text, 
+                       fontsize=fontsize, color=text_color,
+                       ha='center', va='center', fontfamily=FONT,
+                       fontweight='bold')
+                
+                legend_entries[player_name[0]] = player_name
+                
+                foot = shot['shot_body_part']
+                if foot == 'Left Foot':
+                    foot_text = 'L'
+                    offset_x = -circleSize - 2
+                    offset_y = 0
+                elif foot == 'Right Foot':
+                    foot_text = 'R'
+                    offset_x = circleSize + 2
+                    offset_y = 0
+                else:
+                    foot_text = 'O'
+                    offset_x = 0
+                    offset_y = -circleSize - 2
+                
+                ax.text(plot_x + offset_x, plot_y + offset_y, foot_text,
+                       fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                       ha='center', va='center', fontfamily=FONT_BOLD,
+                       bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
+                                boxstyle='round,pad=0.2', alpha=0.7))
+        
+        # Plot away team goals
+        if not away_goals_df.empty:
+            away_cmap = plt.cm.Reds
+            for i, shot in away_goals_df.iterrows():
+                x = shot['location'][0]
+                y = shot['location'][1]
                 plot_x = pitchLengthX - x
                 plot_y = y
-                team_color = AWAY_COLOR
-            
-            time_norm = shot['minute'] / (goals_df['minute'].max() + 1)
-            color = cmap(time_norm)
-            
-            shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
-            ax.add_patch(shotCircle)
-            
-            player_name = shot['player'].split()[-1]
-            text_color = 'black' if time_norm < 0.5 else 'white'
-            
-            if shot['shot_statsbomb_xg'] < 0.1:
-                display_text = player_name[0]
-                fontsize = FONT_SIZE_SM-2
-            else:
-                display_text = player_name
-                fontsize = FONT_SIZE_SM-1
-            
-            ax.text(plot_x, plot_y, display_text, 
-                   fontsize=fontsize, color=text_color,
-                   ha='center', va='center', fontfamily=FONT,
-                   fontweight='bold')
-            
-            legend_entries[player_name[0]] = player_name
-            
-            foot = shot['shot_body_part']
-            if foot == 'Left Foot':
-                foot_text = 'L'
-                offset_x = -circleSize - 2
-                offset_y = 0
-            elif foot == 'Right Foot':
-                foot_text = 'R'
-                offset_x = circleSize + 2
-                offset_y = 0
-            else:
-                foot_text = 'O'
-                offset_x = 0
-                offset_y = -circleSize - 2
-            
-            ax.text(plot_x + offset_x, plot_y + offset_y, foot_text,
-                   fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
-                   ha='center', va='center', fontfamily=FONT_BOLD,
-                   bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
-                            boxstyle='round,pad=0.2', alpha=0.7))
+                circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
+                
+                time_norm = shot['minute'] / (away_goals_df['minute'].max() + 1) if not away_goals_df.empty else 0
+                color = away_cmap(time_norm)
+                
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
+                ax.add_patch(shotCircle)
+                
+                player_name = shot['player'].split()[-1]
+                text_color = 'black' if time_norm < 0.5 else 'white'
+                
+                if shot['shot_statsbomb_xg'] < 0.1:
+                    display_text = player_name[0]
+                    fontsize = FONT_SIZE_SM-2
+                else:
+                    display_text = player_name
+                    fontsize = FONT_SIZE_SM-1
+                
+                ax.text(plot_x, plot_y, display_text, 
+                       fontsize=fontsize, color=text_color,
+                       ha='center', va='center', fontfamily=FONT,
+                       fontweight='bold')
+                
+                legend_entries[player_name[0]] = player_name
+                
+                foot = shot['shot_body_part']
+                if foot == 'Left Foot':
+                    foot_text = 'L'
+                    offset_x = -circleSize - 2
+                    offset_y = 0
+                elif foot == 'Right Foot':
+                    foot_text = 'R'
+                    offset_x = circleSize + 2
+                    offset_y = 0
+                else:
+                    foot_text = 'O'
+                    offset_x = 0
+                    offset_y = -circleSize - 2
+                
+                ax.text(plot_x + offset_x, plot_y + offset_y, foot_text,
+                       fontsize=FONT_SIZE_SM, color=TEXT_COLOR,
+                       ha='center', va='center', fontfamily=FONT_BOLD,
+                       bbox=dict(facecolor=FIG_BG_COLOR, edgecolor=TEXT_COLOR, 
+                                boxstyle='round,pad=0.2', alpha=0.7))
 
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin=0, vmax=goals_df['minute'].max()))
-        sm._A = []
-        cbar = plt.colorbar(sm, ax=ax, orientation='vertical', pad=0.02, aspect=20)
-        cbar.set_label('Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2, labelpad=2)
-        cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
-        plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
+        # Add colorbars for home and away teams
+        if not home_goals_df.empty:
+            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, 
+                                          norm=plt.Normalize(vmin=0, vmax=home_goals_df['minute'].max()))
+            home_sm._A = []
+            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.02, aspect=20, 
+                                   label=f'{h} Goal Minute')
+            home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
+            home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
+            plt.setp(plt.getp(home_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
+        
+        if not away_goals_df.empty:
+            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, 
+                                          norm=plt.Normalize(vmin=0, vmax=away_goals_df['minute'].max()))
+            away_sm._A = []
+            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.02, aspect=20, 
+                                   label=f'{w} Goal Minute')
+            away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
+            away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
+            plt.setp(plt.getp(away_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
+            away_cbar.ax.yaxis.set_label_position('left')
+            away_cbar.ax.yaxis.tick_left()
         
         legend_elements = [
-            Line2D([0], [0], marker='o', color='w', label='Left Foot (L)',
-                  markerfacecolor='gray', markersize=6),
-            Line2D([0], [0], marker='o', color='w', label='Right Foot (R)',
-                  markerfacecolor='gray', markersize=6),
-            Line2D([0], [0], marker='o', color='w', label='Other (O)',
-                  markerfacecolor='gray', markersize=6)
+            Line2D([0], [0], marker='o', color='w', label=f'{h} Goal', 
+                   markerfacecolor=HOME_COLOR, markersize=8),
+            Line2D([0], [0], marker='o', color='w', label=f'{w} Goal', 
+                   markerfacecolor=AWAY_COLOR, markersize=8),
+            Line2D([0], [0], marker='o', color='w', label='Left Foot (L)', 
+                   markerfacecolor='gray', markersize=6),
+            Line2D([0], [0], marker='o', color='w', label='Right Foot (R)', 
+                   markerfacecolor='gray', markersize=6),
+            Line2D([0], [0], marker='o', color='w', label='Other (O)', 
+                   markerfacecolor='gray', markersize=6)
         ]
         
         player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
@@ -375,8 +447,8 @@ def goals(shots, h, w, match_id):
         save_and_display(fig, f'goals-{match_id}.png')
         
         # Analytical Description for Goals
-        home_goals = goals_df[goals_df['team'] == h].shape[0]
-        away_goals = goals_df[goals_df['team'] == w].shape[0]
+        home_goals = home_goals_df.shape[0]
+        away_goals = away_goals_df.shape[0]
         top_scorer = goals_df['player'].value_counts().idxmax() if not goals_df.empty else "N/A"
         
         description = f"{h} scored {home_goals} goals, while {w} scored {away_goals}."
