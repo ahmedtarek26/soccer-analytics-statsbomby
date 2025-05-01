@@ -276,9 +276,9 @@ def goals(shots, h, w, match_id):
         legend_entries = {}
         
         # Define colormaps and normalization for minutes
-        norm = plt.Normalize(0, 120)
-        home_cmap = plt.cm.Reds_r
-        away_cmap = plt.cm.Blues_r
+        norm = plt.Normalize(0, 90)
+        home_cmap = plt.cm.Reds
+        away_cmap = plt.cm.Blues
         
         # Plot home team goals
         if not home_goals_df.empty:
@@ -360,7 +360,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='black',
+                       fontsize=fontsize, color='white',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
