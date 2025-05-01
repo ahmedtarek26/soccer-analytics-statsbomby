@@ -401,26 +401,25 @@ def goals(shots, h, w, match_id):
 
         # Add colorbars for home and away teams
         if not home_goals_df.empty:
-            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, 
+            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, 
                                           norm=plt.Normalize(vmin=0, vmax=home_goals_df['minute'].max()))
             home_sm._A = []
-            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.02, aspect=70, 
+            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', aspect=70, 
                                    label=f'{h} Goal Minute')
             home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
             home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
             plt.setp(plt.getp(home_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
         if not away_goals_df.empty:
-            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, 
+            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, 
                                           norm=plt.Normalize(vmin=0, vmax=away_goals_df['minute'].max()))
             away_sm._A = []
-            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.02, aspect=70, 
+            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical',  aspect=70, 
                                    label=f'{w} Goal Minute')
             away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
             away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
             plt.setp(plt.getp(away_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
-            # away_cbar.ax.yaxis.set_label_position('left')
-            # away_cbar.ax.yaxis.tick_left()
+        
         
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label=f'{h} Goal', 
