@@ -218,7 +218,7 @@ def shots_goal(shots, h, w, match_id):
         total_shots = len(shots)
         
         # Define xG values for the scale
-        xg_values = [0.05, 0.2, 0.5, 1.0]  # Representative xG values for the scale
+        xg_values = [2, 3, 5]  # Representative xG values for the scale
         xg_sizes = [np.sqrt(xg) * 5 for xg in xg_values]  # Same scaling as shot circles
         
         legend_elements = [
@@ -228,14 +228,12 @@ def shots_goal(shots, h, w, match_id):
                    markerfacecolor=AWAY_COLOR, markersize=8),
             Line2D([0], [0], marker='', color='w', label=f'Total Shots: {total_shots}', 
                    markersize=0),
-            Line2D([0], [0], marker='o', color='w', label='Low xG', 
-                   markerfacecolor='gray', markersize=xg_sizes[0]),
-            Line2D([0], [0], marker='o', color='w', label='', 
-                   markerfacecolor='gray', markersize=xg_sizes[1]),
-            Line2D([0], [0], marker='o', color='w', label='', 
-                   markerfacecolor='gray', markersize=xg_sizes[2]),
-            Line2D([0], [0], marker='o', color='w', label='High xG', 
-                   markerfacecolor='gray', markersize=xg_sizes[3])
+            Line2D([0], [0], marker='o', color='0.6', label='Low xG', 
+                   markerfacecolor='white', markersize=xg_sizes[0]),
+            Line2D([0], [0], marker='o', color='0.6', label='', 
+                   markerfacecolor='white', markersize=xg_sizes[1]),
+            Line2D([0], [0], marker='o', color='0.6', label='High xG', 
+                   markerfacecolor='white', markersize=xg_sizes[2])
         ]
         legend = ax.legend(handles=legend_elements, loc='upper left',
                          facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
@@ -320,7 +318,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='white',edgecolor='black',
+                       fontsize=fontsize, color='black',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -373,7 +371,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='white',edgecolor='black',
+                       fontsize=fontsize, color='black',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -402,28 +400,34 @@ def goals(shots, h, w, match_id):
         # Add colorbars
         if not home_goals_df.empty:
             sm_home = plt.cm.ScalarMappable(cmap=home_cmap, norm=norm)
-            cbar_home = plt.colorbar(sm_home, ax=ax, pad=0.001, shrink=0.5, aspect=45, location='right')
+            cbar_home = plt.colorbar(sm_home, ax=ax, pad=0.01, shrink=0.5, aspect=45, location='right')
             cbar_home.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
             cbar_home.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
         
         if not away_goals_df.empty:
             sm_away = plt.cm.ScalarMappable(cmap=away_cmap, norm=norm)
-            cbar_away = plt.colorbar(sm_away, ax=ax, pad=0.001, shrink=0.5, aspect=45, location='left')
+            cbar_away = plt.colorbar(sm_away, ax=ax, pad=0.01, shrink=0.5, aspect=45, location='left')
             cbar_away.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
             cbar_away.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
 
+        # Define xG values for the scale
+        xg_values = [2, 3, 5]  # Representative xG values for the scale
+        xg_sizes = [np.sqrt(xg) * 5 for xg in xg_values]  # Same scaling as shot circles
         # Add legend
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label=f'{h} Goal', 
                    markerfacecolor=HOME_COLOR, markersize=6),
             Line2D([0], [0], marker='o', color='w', label=f'{w} Goal', 
                    markerfacecolor=AWAY_COLOR, markersize=6),
-            Line2D([0], [0], marker='o', color='w', label='Left Foot (L)', 
-                   markerfacecolor='gray', markersize=5),
-            Line2D([0], [0], marker='o', color='w', label='Right Foot (R)', 
-                   markerfacecolor='gray', markersize=5),
-            Line2D([0], [0], marker='o', color='w', label='Other (O)', 
-                   markerfacecolor='gray', markersize=5)
+            Line2D([0], [0], marker='*', color='k', label='Left Foot (L) , Right Foot (R), Other (O)', 
+                   markerfacecolor='black', markersize=5),
+            Line2D([0], [0], marker='o', color='0.6', label='Low xG', 
+                   markerfacecolor='white', markersize=xg_sizes[0]),
+            Line2D([0], [0], marker='o', color='0.6', label='', 
+                   markerfacecolor='white', markersize=xg_sizes[1]),
+            Line2D([0], [0], marker='o', color='0.6', label='High xG', 
+                   markerfacecolor='white', markersize=xg_sizes[2])
+
         ]
         
         player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
