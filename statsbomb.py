@@ -404,7 +404,7 @@ def goals(shots, h, w, match_id):
             home_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, 
                                           norm=plt.Normalize(vmin=0, vmax=home_goals_df['minute'].max()))
             home_sm._A = []
-            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.02, aspect=8, 
+            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.02, aspect=80, 
                                    label=f'{h} Goal Minute')
             home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
             home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
@@ -414,7 +414,7 @@ def goals(shots, h, w, match_id):
             away_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, 
                                           norm=plt.Normalize(vmin=0, vmax=away_goals_df['minute'].max()))
             away_sm._A = []
-            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.02, aspect=8, 
+            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.02, aspect=80, 
                                    label=f'{w} Goal Minute')
             away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
             away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
