@@ -295,7 +295,6 @@ def goals(shots, h, w, match_id):
         
         # Plot home team goals
         if not home_goals_df.empty:
-            home_cmap = plt.cm.Blues
             for i, shot in home_goals_df.iterrows():
                 x = shot['location'][0]
                 y = shot['location'][1]
@@ -303,14 +302,11 @@ def goals(shots, h, w, match_id):
                 plot_y = pitchWidthY - y
                 circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
                 
-                time_norm = shot['minute'] / (home_goals_df['minute'].max() + 1) if not home_goals_df.empty else 0
-                color = home_cmap(time_norm)
-                
-                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=HOME_COLOR, alpha=0.8)
                 ax.add_patch(shotCircle)
                 
                 player_name = shot['player'].split()[-1]
-                text_color = 'black' if time_norm < 0.5 else 'white'
+                text_color = 'white' if DARK_MODE else 'black'
                 
                 if shot['shot_statsbomb_xg'] < 0.1:
                     display_text = player_name[0]
@@ -348,7 +344,6 @@ def goals(shots, h, w, match_id):
         
         # Plot away team goals
         if not away_goals_df.empty:
-            away_cmap = plt.cm.Reds
             for i, shot in away_goals_df.iterrows():
                 x = shot['location'][0]
                 y = shot['location'][1]
@@ -356,14 +351,11 @@ def goals(shots, h, w, match_id):
                 plot_y = y
                 circleSize = np.sqrt(shot['shot_statsbomb_xg']) * 8
                 
-                time_norm = shot['minute'] / (away_goals_df['minute'].max() + 1) if not away_goals_df.empty else 0
-                color = away_cmap(time_norm)
-                
-                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=color, alpha=0.8)
+                shotCircle = plt.Circle((plot_x, plot_y), circleSize, color=AWAY_COLOR, alpha=0.8)
                 ax.add_patch(shotCircle)
                 
                 player_name = shot['player'].split()[-1]
-                text_color = 'black' if time_norm < 0.5 else 'white'
+                text_color = 'white' if DARK_MODE else 'black'
                 
                 if shot['shot_statsbomb_xg'] < 0.1:
                     display_text = player_name[0]
@@ -401,37 +393,38 @@ def goals(shots, h, w, match_id):
 
         # Add colorbars for home and away teams
         if not home_goals_df.empty:
-            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.Reds, 
+            home_sm = plt.cm.ScalarMappable(cmap=plt.cm.get_cmap('Blues_r'), 
                                           norm=plt.Normalize(vmin=0, vmax=home_goals_df['minute'].max()))
             home_sm._A = []
-            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', aspect=70, 
-                                   label=f'{h} Goal Minute')
-            home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
-            home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
+            home_cbar = plt.colorbar(home_sm, ax=ax, orientation='vertical', pad=0.01, aspect=15, 
+                                   fraction=0.03, shrink=0.5, label=f'{h} Goal Minute')
+            home_cbar.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-3)
+            home_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-4)
             plt.setp(plt.getp(home_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
         
         if not away_goals_df.empty:
-            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.Blues, 
+            away_sm = plt.cm.ScalarMappable(cmap=plt.cm.get_cmap('Reds_r'), 
                                           norm=plt.Normalize(vmin=0, vmax=away_goals_df['minute'].max()))
             away_sm._A = []
-            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical',  aspect=70, 
-                                   label=f'{w} Goal Minute')
-            away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-2)
-            away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-3)
+            away_cbar = plt.colorbar(away_sm, ax=ax, orientation='vertical', pad=0.01, aspect=15, 
+                                   fraction=0.03, shrink=0.5, label=f'{w} Goal Minute')
+            away_cbar.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM-3)
+            away_cbar.ax.yaxis.set_tick_params(color=TEXT_COLOR, labelsize=FONT_SIZE_SM-4)
             plt.setp(plt.getp(away_cbar.ax.axes, 'yticklabels'), color=TEXT_COLOR)
-        
+            away_cbar.ax.yaxis.set_label_position('left')
+            away_cbar.ax.yaxis.tick_left()
         
         legend_elements = [
             Line2D([0], [0], marker='o', color='w', label=f'{h} Goal', 
-                   markerfacecolor=HOME_COLOR, markersize=8),
+                   markerfacecolor=HOME_COLOR, markersize=6),
             Line2D([0], [0], marker='o', color='w', label=f'{w} Goal', 
-                   markerfacecolor=AWAY_COLOR, markersize=8),
+                   markerfacecolor=AWAY_COLOR, markersize=6),
             Line2D([0], [0], marker='o', color='w', label='Left Foot (L)', 
-                   markerfacecolor='gray', markersize=6),
+                   markerfacecolor='gray', markersize=5),
             Line2D([0], [0], marker='o', color='w', label='Right Foot (R)', 
-                   markerfacecolor='gray', markersize=6),
-            Line2D([0], [0], marker='o', color='w', label='Other (O)', 
-                   markerfacecolor='gray', markersize=6)
+                   markerfacecolor='gray', markersize=5),
+            Line2D([0], [0], marker='o',-D color='w', label='Other (O)', 
+                   markerfacecolor='gray', markersize=5)
         ]
         
         player_legend = "\n".join([f"{k}: {v}" for k,v in sorted(legend_entries.items())])
@@ -441,7 +434,7 @@ def goals(shots, h, w, match_id):
         
         ax.legend(handles=legend_elements, loc='upper left', 
                  facecolor=FIG_BG_COLOR, edgecolor=FIG_BG_COLOR,
-                 fontsize=FONT_SIZE_SM-2, handlelength=1.5)
+                 fontsize=FONT_SIZE_SM-3, handlelength=1.2)
         
         save_and_display(fig, f'goals-{match_id}.png')
         
