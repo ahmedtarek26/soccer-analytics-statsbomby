@@ -360,7 +360,7 @@ def goals(shots, h, w, match_id):
                     fontsize = FONT_SIZE_SM-1
                 
                 ax.text(plot_x, plot_y, display_text, 
-                       fontsize=fontsize, color='white',
+                       fontsize=fontsize, color='gray',
                        ha='center', va='center', fontfamily=FONT,
                        fontweight='bold')
                 
@@ -389,13 +389,13 @@ def goals(shots, h, w, match_id):
         # Add colorbars
         if not home_goals_df.empty:
             sm_home = plt.cm.ScalarMappable(cmap=home_cmap, norm=norm)
-            cbar_home = plt.colorbar(sm_home, ax=ax, pad=0.01, shrink=0.5, aspect=15, location='left')
+            cbar_home = plt.colorbar(sm_home, ax=ax, pad=0.001, shrink=0.5, aspect=65, location='right')
             cbar_home.set_label(f'{h} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
             cbar_home.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
         
         if not away_goals_df.empty:
             sm_away = plt.cm.ScalarMappable(cmap=away_cmap, norm=norm)
-            cbar_away = plt.colorbar(sm_away, ax=ax, pad=0.01, shrink=0.5, aspect=15, location='right')
+            cbar_away = plt.colorbar(sm_away, ax=ax, pad=0.001, shrink=0.5, aspect=65, location='left')
             cbar_away.set_label(f'{w} Goal Minute', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
             cbar_away.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
 
