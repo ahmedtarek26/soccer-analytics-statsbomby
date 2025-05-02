@@ -815,9 +815,13 @@ def pass_network(events, team_name, match_id, color):
         heatmap_bins = (6, 4)
         bs_heatmap = pitch.bin_statistic(successful_passes['x'], successful_passes['y'], 
                                         statistic='count', bins=heatmap_bins)
-        pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
+        hm=pitch.heatmap(bs_heatmap, ax=ax, cmap='Blues' if color == HOME_COLOR else 'Reds', 
                      alpha=0.3, zorder=0.5)
-        
+        # Add colorbar for heatmap
+        cbar = fig.colorbar(hm, ax=ax, shrink=0.5, aspect=20, location='bottom', pad=0.05)
+        cbar.set_label('Actions Heatmap', color=TEXT_COLOR, fontsize=FONT_SIZE_SM)
+        cbar.ax.tick_params(labelsize=FONT_SIZE_SM-2, colors=TEXT_COLOR)
+
         # Pass connections
         pitch.lines(
             role_pass_connections.x,
@@ -855,6 +859,10 @@ def pass_network(events, team_name, match_id, color):
             ax=ax,
             zorder=3
         )
+        
+        # Add playing direction arrow
+        ax.arrow(10, 5, 20, 0, head_width=2, head_length=2, fc=TEXT_COLOR, ec=TEXT_COLOR)
+        # ax.text(20, 8, '→', fontsize=FONT_SIZE_MD, color=TEXT_COLOR, ha='center', va='center')
         
         ax.set_title(f"{team_name} Pass Network", fontsize=16, pad=20, color=TEXT_COLOR)
         fig.text(0.02, 0.02, '@ahmedtarek26 / GitHub', 
