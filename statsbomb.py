@@ -652,12 +652,12 @@ def infer_formation(avg_locations):
             return 'Unknown'
         
         kmeans = KMeans(n_clusters=3, random_state=42)
-        avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']])
+        avg_locations['cluster'] = kmeans.fit_predict(avg_locations[['y']][1:])
         
         cluster_centers = kmeans.cluster_centers_.flatten()
         sorted_clusters = np.argsort(cluster_centers)
         
-        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])-1
+        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
         mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
         att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
         
