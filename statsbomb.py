@@ -647,6 +647,7 @@ def infer_formation(avg_locations):
     Returns:
         str: Inferred formation (e.g., '4-3-3') or 'Unknown'.
     """
+    avg_locations = avg_locations[1:]
     try:
         if len(avg_locations) < 3:
             return 'Unknown'
