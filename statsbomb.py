@@ -657,7 +657,7 @@ def infer_formation(avg_locations):
         cluster_centers = kmeans.cluster_centers_.flatten()
         sorted_clusters = np.argsort(cluster_centers)
         
-        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])
+        def_count = sum(avg_locations['cluster'] == sorted_clusters[0])-1
         mid_count = sum(avg_locations['cluster'] == sorted_clusters[1])
         att_count = sum(avg_locations['cluster'] == sorted_clusters[2])
         
